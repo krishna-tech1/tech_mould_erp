@@ -2,7 +2,7 @@ import { pgEnum, pgTable, serial, text } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
     id: serial("id").primaryKey(),
-    email: text("email").notNull(),
+    email: text("email").notNull().unique(),
     role: text("role", { enum: ["admin", "client"] }).notNull(),
     passwordHash: text("password_hash").notNull(),
 });
