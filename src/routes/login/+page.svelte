@@ -2,6 +2,7 @@
     import type { PageProps } from "./$types";
     import { enhance } from "$app/forms";
     import logo from "$lib/assets/logo.png";
+    import { auth } from "$lib/auth.svelte.ts";
 
     import {
         Mail,
@@ -13,6 +14,7 @@
         CircleCheck,
         Eye,
         EyeOff,
+        ShieldCheck
     } from "lucide-svelte";
 
     let { form }: PageProps = $props();
@@ -24,7 +26,8 @@
     let errorMessage = $state("");
 
     const roles = [
-        { id: "admin", label: "Management", icon: Briefcase },
+        { id: "admin", label: "Admin", icon: ShieldCheck },
+        { id: "management", label: "Management", icon: Briefcase },
         { id: "employee", label: "Employees", icon: CircleUser },
         { id: "client", label: "Clients", icon: Users },
     ];
@@ -36,7 +39,6 @@
 
 <div class="login-page">
     <div class="split-layout">
-        <!-- Left Side - Branded Area -->
         <div class="brand-panel">
             <div class="brand-content">
                 <div class="brand-text-logo">
@@ -71,13 +73,10 @@
                     reserved.</span
                 >
             </div>
-
-            <!-- Decoration elements -->
             <div class="glass-orb orb-1"></div>
             <div class="glass-orb orb-2"></div>
         </div>
 
-        <!-- Right Side - Login Form -->
         <div class="form-panel">
             <div class="form-wrapper">
                 <img
@@ -92,7 +91,6 @@
                     <p>Please select your portal and enter your credentials.</p>
                 </div>
 
-                <!-- Role Selector -->
                 <div class="role-tabs">
                     {#each roles as role}
                         <button
@@ -107,21 +105,31 @@
                     {/each}
                 </div>
 
-                <!-- Login Form -->
                 <form
                     class="login-form"
                     method="POST"
                     action="?/login"
                     use:enhance={() => {
                         isLoading = true;
-                        return async ({ update }) => {
+                        return async ({ result, update }) => {
                             isLoading = false;
-                            await update();
+                            if (result.type === "redirect") {
+                                // Update secure storage and shared reactive state
+                                localStorage.setItem("isAuthenticated", "true");
+                                localStorage.setItem("userRole", activeRole);
+                                auth.isAuthenticated = true;
+                                auth.userRole = activeRole;
+                                
+                                // FORCE A FULL RELOAD to ensure all layouts properly re-render with the new role
+                                window.location.href = result.location;
+                            } else {
+                                await update();
+                            }
                         };
                     }}
                 >
                     {#if errorMessage || form?.error}
-                        <div class="error-banner">
+                        <div class="error-banner" in:fade>
                             {errorMessage || form?.error}
                         </div>
                     {/if}
@@ -222,7 +230,6 @@
         height: 100%;
     }
 
-    /* Left Panel (Branding) */
     .brand-panel {
         flex: 1;
         background: linear-gradient(135deg, #443399 0%, #654dcf 100%);
@@ -309,7 +316,6 @@
         font-weight: 500;
     }
 
-    /* Orbs */
     .glass-orb {
         position: absolute;
         border-radius: 50%;
@@ -322,26 +328,9 @@
         z-index: 1;
     }
 
-    .orb-1 {
-        width: 600px;
-        height: 600px;
-        top: -200px;
-        right: -200px;
-    }
+    .orb-1 { width: 600px; height: 600px; top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; bottom: -100px; left: -150px; background: rgba(255,255,255,0.05); }
 
-    .orb-2 {
-        width: 400px;
-        height: 400px;
-        bottom: -100px;
-        left: -150px;
-        background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.1) 0%,
-            rgba(255, 255, 255, 0) 100%
-        );
-    }
-
-    /* Right Panel (Form) */
     .form-panel {
         flex: 1;
         display: flex;
@@ -356,36 +345,17 @@
         padding: 48px;
         background: white;
         border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
-        border: 1px solid rgba(0, 0, 0, 0.02);
+        box-shadow: 0 40px 100px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
         align-items: center;
     }
 
-    .form-logo {
-        height: 48px;
-        object-fit: contain;
-        margin-bottom: 24px;
-    }
+    .form-logo { height: 48px; margin-bottom: 24px; }
 
-    .form-header {
-        text-align: center;
-        margin-bottom: 32px;
-    }
-
-    .form-header h2 {
-        font-size: 28px;
-        font-weight: 800;
-        color: #1a1a1a;
-        margin-bottom: 8px;
-        letter-spacing: -0.5px;
-    }
-
-    .form-header p {
-        font-size: 14px;
-        color: #718096;
-    }
+    .form-header { text-align: center; margin-bottom: 32px; }
+    .form-header h2 { font-size: 28px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; }
+    .form-header p { font-size: 14px; color: #718096; }
 
     .role-tabs {
         display: flex;
@@ -405,24 +375,15 @@
         gap: 6px;
         padding: 12px 0;
         border-radius: 8px;
-        border: none;
         background: transparent;
         color: #a0aec0;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
         cursor: pointer;
         transition: all 0.2s;
     }
 
-    .role-tab:hover {
-        color: #4a5568;
-    }
-
-    .role-tab.active {
-        background: white;
-        color: var(--primary);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
+    .role-tab.active { background: white; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
     .error-banner {
         background: #fff5f5;
@@ -433,111 +394,33 @@
         font-size: 13px;
         font-weight: 600;
         text-align: center;
-    }
-
-    .login-form {
-        display: flex;
         width: 100%;
-        flex-direction: column;
-        gap: 20px;
+        margin-bottom: 20px;
     }
 
-    .input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
+    .login-form { display: flex; width: 100%; flex-direction: column; gap: 20px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    label { font-size: 12px; font-weight: 800; color: #4a5568; }
 
-    .label-row {
-        display: flex;
-        align-items: center;
-    }
+    .input-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
+    .input-icon { position: absolute; left: 16px; color: #a0aec0; transition: color 0.2s; }
+    .input-wrapper:focus-within .input-icon { color: var(--primary); }
 
-    label {
-        font-size: 12px;
-        font-weight: 800;
-        color: #4a5568;
-    }
-
-    .forgot-link {
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--primary);
-        text-decoration: none;
-    }
-
-    .forgot-link:hover {
-        text-decoration: underline;
-    }
-
-    .input-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
+    input {
         width: 100%;
-    }
-
-    .input-icon {
-        position: absolute;
-        left: 16px;
-        display: flex;
-        align-items: center;
-        color: #a0aec0;
-        transition: color 0.2s;
-        pointer-events: none;
-    }
-
-    .input-wrapper:focus-within .input-icon {
-        color: var(--primary);
-    }
-
-    input[type="email"],
-    input[type="password"],
-    input[type="text"] {
-        width: 100%;
-        flex: 1;
-        padding: 14px 44px 14px 44px; /* padding-right 44px for the eye icon */
+        padding: 14px 44px;
         border-radius: 10px;
         border: 1px solid #edf2f7;
         font-size: 14px;
         font-weight: 600;
         color: #1a1a1a;
-        transition: all 0.2s;
         background: #f8f9fc;
         box-sizing: border-box;
-        margin: 0;
     }
 
-    input:focus {
-        outline: none;
-        border-color: var(--primary);
-        background: white;
-        box-shadow: 0 0 0 3px rgba(101, 77, 207, 0.1);
-    }
+    input:focus { outline: none; border-color: var(--primary); background: white; }
 
-    /* Removed options-row/remember-me rules since they are no longer needed */
-
-    .eye-btn {
-        position: absolute;
-        right: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        color: #a0aec0;
-        padding: 0;
-        transition: color 0.2s;
-    }
-
-    .eye-btn:hover {
-        color: var(--primary);
-    }
-
-    .eye-btn:focus {
-        outline: none;
-    }
+    .eye-btn { position: absolute; right: 16px; background: transparent; cursor: pointer; color: #a0aec0; }
 
     .btn-submit {
         display: flex;
@@ -548,7 +431,6 @@
         padding: 16px;
         background: var(--primary);
         color: white;
-        border: none;
         border-radius: 10px;
         font-size: 14px;
         font-weight: 800;
@@ -557,65 +439,10 @@
         margin-top: 12px;
     }
 
-    .btn-submit:hover:not(:disabled) {
-        background: #543eb3;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(101, 77, 207, 0.2);
-    }
+    .btn-submit:hover:not(:disabled) { background: #543eb3; transform: translateY(-1px); }
+    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .btn-submit:active:not(:disabled) {
-        transform: translateY(1px);
-    }
-
-    .btn-submit:disabled {
-        opacity: 0.8;
-        cursor: not-allowed;
-    }
-
-    .spinner {
-        width: 20px;
-        height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .client-note {
-        text-align: center;
-        margin-top: 24px;
-        font-size: 13px;
-        color: #718096;
-        font-weight: 600;
-    }
-
-    .client-note a {
-        color: var(--primary);
-        text-decoration: none;
-        font-weight: 700;
-    }
-
-    .client-note a:hover {
-        text-decoration: underline;
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 900px) {
-        .split-layout {
-            flex-direction: column;
-        }
-        .brand-panel {
-            max-width: 100%;
-            padding: 40px;
-        }
-        .form-panel {
-            padding: 40px 20px;
-        }
-    }
+    .client-note { text-align: center; margin-top: 24px; font-size: 13px; color: #718096; }
+    .client-note a { color: var(--primary); text-decoration: none; font-weight: 700; }
 </style>

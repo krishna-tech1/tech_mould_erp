@@ -1,7 +1,3 @@
-import bcrypt from "bcrypt";
-import { db } from "$lib/server/db";
-import { users } from "$lib/server/schema";
-import { eq } from "drizzle-orm";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions } from "./$types";
 
@@ -12,32 +8,50 @@ export const actions: Actions = {
         const password = data.get("password") as string;
         const role = data.get("role") as string;
 
-        if (role !== "admin")
+        // Expanded Tiered Credential System
+        const validCredentials = [
+            {
+                email: "admin@techmould.com",
+                password: "admin",
+                role: "admin"
+            },
+            {
+                email: "management@techmould.com",
+                password: "manager123",
+                role: "management"
+            },
+            {
+                email: "employee@techmould.com",
+                password: "emp",
+                role: "employee"
+            },
+            {
+                email: "client@techmould.com",
+                password: "client",
+                role: "client"
+            }
+        ];
+
+        // Find match across email, password, and specific portal selection
+        const userFound = validCredentials.find(
+            u => u.email === email && u.password === password && u.role === role
+        );
+
+        if (userFound) {
+            // Set session cookie
+            cookies.set("session", "authenticated_session_token", {
+                path: "/",
+                httpOnly: true,
+                sameSite: "strict",
+                secure: import.meta.env.PROD,
+            });
+            
+            throw redirect(303, "/");
+        } else {
             return fail(401, {
                 email,
-                error: "Only the Admin portal is currently accessible.",
+                error: "Authentication failed. Please verify your portal selection and credentials."
             });
-
-        const [user] = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email));
-
-        if (!user) return fail(401, { email, error: "Invalid credentials" });
-
-        if (user.role !== role)
-            return fail(403, { email, error: "Not authorized" });
-
-        const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return fail(401, { email, error: "Invalid credentials" });
-
-        cookies.set("session", user.id.toString(), {
-            path: "/",
-            httpOnly: true,
-            sameSite: "strict",
-            secure: true,
-        });
-
-        throw redirect(303, "/");
+        }
     },
 };

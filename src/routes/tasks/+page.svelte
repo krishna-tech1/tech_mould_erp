@@ -1,128 +1,79 @@
 <script lang="ts">
     import {
         CircleCheck,
-        EllipsisVertical,
         Plus,
         Funnel,
-        ExternalLink,
-        Clock,
         Download,
-        CircleAlert,
-        ChevronRight,
         Search,
         Activity,
+        Clock,
+        MoreHorizontal,
+        AlertCircle,
+        Users
     } from "lucide-svelte";
+    import { fade, slide, scale } from "svelte/transition";
+    import CreateTaskModal from "$lib/components/CreateTaskModal.svelte";
+
+    let showCreateTaskModal = $state(false);
+    let searchQuery = $state("");
+    let priorityFilter = $state("All Priorities");
 
     const stats = [
         { label: "TOTAL TASKS", value: "142", trend: "+12%", color: "#4ecdc4" },
-        {
-            label: "AVG. EFFICIENCY",
-            value: "94%",
-            trend: "+2.4",
-            color: "#4ecdc4",
-        },
-        { label: "LOGGED HOURS", value: "1,208", sub: "this week" },
+        { label: "COMPLETION RATE", value: "88%", trend: "+5%", color: "#4ecdc4" },
+        { label: "PENDING REVIEW", value: "05", trend: "", color: "#f39c12" },
+        { label: "OVERDUE", value: "02", trend: "Critical", color: "#e74c3c" },
     ];
 
-    const kanban = [
+    let kanbanCols = $state([
         {
-            title: "TO DO",
-            count: 14,
+            title: "To Do",
+            id: "todo",
             color: "#654dcf",
             cards: [
-                {
-                    title: "API Integration Architecture",
-                    project: "CloudCore ERP",
-                    priority: "HIGH PRIORITY",
-                    date: "Oct 24",
-                    pColor: "#f39c12",
-                },
-                {
-                    title: "Security Audit Report",
-                    project: "FinGuard Ops",
-                    priority: "MEDIUM",
-                    date: "Oct 28",
-                    pColor: "#edf2f7",
-                },
-            ],
+                { id: "T-101", title: "API Integration Architecture", project: "CloudCore ERP", priority: "HIGH", date: "Oct 24", members: 2 },
+                { id: "T-102", title: "Security Audit Report", project: "FinGuard Ops", priority: "MEDIUM", date: "Oct 28", members: 1 },
+            ]
         },
         {
-            title: "IN PROGRESS",
-            count: "08",
+            title: "In Progress",
+            id: "doing",
             color: "#654dcf",
             cards: [
-                {
-                    title: "UI Redesign Phase 2",
-                    project: "TechMould Internal",
-                    priority: "HIGH PRIORITY",
-                    active: true,
-                    pColor: "#f39c12",
-                },
-            ],
+                { id: "T-201", title: "UI Redesign Phase 2", project: "TechMould Internal", priority: "HIGH", active: true, members: 3 },
+            ]
         },
         {
-            title: "REVIEW",
-            count: "05",
+            title: "Testing",
+            id: "testing",
             color: "#f39c12",
             cards: [
-                {
-                    title: "QA Database Migration",
-                    project: "DataStreamer",
-                    priority: "MEDIUM",
-                    status: "Pending",
-                    pColor: "#edf2f7",
-                },
-            ],
+                { id: "T-301", title: "QA Database Migration", project: "DataStreamer", priority: "MEDIUM", date: "Oct 21", members: 1 },
+            ]
         },
         {
-            title: "COMPLETED",
-            count: 92,
+            title: "Done",
+            id: "done",
             color: "#4ecdc4",
             cards: [
-                {
-                    title: "Module Test Plan",
-                    sub: "Completed 3h ago",
-                    archived: true,
-                },
-            ],
-        },
-    ];
+                { id: "T-401", title: "Module Test Plan", project: "DataStreamer", priority: "LOW", done: true, members: 2 },
+            ]
+        }
+    ]);
 
-    const employees = [
-        {
-            name: "Elena Rodriguez",
-            role: "Senior Architect",
-            project: "CloudCore ERP",
-            hours: 38,
-            total: 40,
-            eff: "96.2%",
-            status: "ONLINE",
-            sColor: "#e8fdfa",
-            sTextColor: "#4ecdc4",
-        },
-        {
-            name: "Marcus Chen",
-            role: "Lead Developer",
-            project: "FinGuard Ops",
-            hours: 42,
-            total: 40,
-            eff: "92.5%",
-            status: "IN MEETING",
-            sColor: "#fff5e6",
-            sTextColor: "#f39c12",
-        },
-        {
-            name: "Sarah Jenkins",
-            role: "UI/UX Designer",
-            project: "TechMould Redesign",
-            hours: 12,
-            total: 40,
-            eff: "88.0%",
-            status: "AWAY",
-            sColor: "#f1f3f7",
-            sTextColor: "#a0aec0",
-        },
-    ];
+    const filteredKanban = $derived(
+        kanbanCols.map(col => ({
+            ...col,
+            cards: col.cards.filter(card => {
+                const matchesSearch = card.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                     card.project.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesPriority = priorityFilter === "All Priorities" || card.priority === priorityFilter.toUpperCase();
+                return matchesSearch && matchesPriority;
+            })
+        }))
+    );
+
+    const priorityOptions = ["All Priorities", "High", "Medium", "Low", "Urgent"];
 </script>
 
 <svelte:head>
@@ -130,568 +81,456 @@
 </svelte:head>
 
 <div class="tasks-page">
-    <!-- Stats Section -->
-    <div class="stats-row">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <h1>Task Management <span class="badge">LIVE</span></h1>
+            <p>Coordinate workflows and monitor team efficiency.</p>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <Search size={16} />
+                <input type="text" placeholder="Search tasks or projects..." bind:value={searchQuery} />
+            </div>
+            <div class="filter-dropdown">
+                <Funnel size={14} />
+                <select bind:value={priorityFilter}>
+                    {#each priorityOptions as opt}
+                        <option value={opt}>{opt}</option>
+                    {/each}
+                </select>
+            </div>
+            <button class="btn-primary" onclick={() => showCreateTaskModal = true}>
+                <Plus size={18} />
+                New Task
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
         {#each stats as stat}
             <div class="stat-card">
-                <span class="label">{stat.label}</span>
-                <div class="val-row">
-                    <span class="value">{stat.value}</span>
+                <span class="stat-label">{stat.label}</span>
+                <div class="stat-main">
+                    <span class="stat-value">{stat.value}</span>
                     {#if stat.trend}
-                        <span class="trend" style="color: {stat.color}"
-                            >{stat.trend}</span
+                        <span class="stat-trend" style="color: {stat.color}">{stat.trend}</span>
+                    {/if}
+                </div>
+                <div class="stat-progress">
+                    <div class="progress-bar" style="background: {stat.color}20">
+                        <div class="progress-fill" style="width: 70%; background: {stat.color}"></div>
+                    </div>
+                </div>
+            </div>
+        {/each}
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        {#each filteredKanban as col}
+            <div class="kanban-column" in:fade={{ duration: 400 }}>
+                <div class="column-header">
+                    <div class="left">
+                        <div class="dot" style="background: {col.color}"></div>
+                        <h3>{col.title}</h3>
+                        <span class="count">{col.cards.length}</span>
+                    </div>
+                </div>
+
+                <div class="task-list">
+                    {#each col.cards as task (task.id)}
+                        <div 
+                            class="task-card {task.priority.toLowerCase()}" 
+                            transition:scale={{ duration: 200, start: 0.95 }}
                         >
-                    {:else if stat.sub}
-                        <span class="sub">{stat.sub}</span>
+                            <div class="task-header">
+                                <span class="priority-tag">{task.priority}</span>
+                                <button class="more-btn"><MoreHorizontal size={14} /></button>
+                            </div>
+                            
+                            <div class="task-content">
+                                <h4>{task.title}</h4>
+                                <span class="project-name">{task.project}</span>
+                            </div>
+
+                            <div class="task-footer">
+                                <div class="members">
+                                    {#each Array(task.members) as _, i}
+                                        <div class="member-avatar" style="z-index: {10 - i}"></div>
+                                    {/each}
+                                </div>
+                                
+                                <div class="task-meta">
+                                    {#if task.active}
+                                        <span class="active-status">
+                                            <div class="pulse-dot"></div>
+                                            Active
+                                        </span>
+                                    {:else if task.done}
+                                        <span class="done-status"><CircleCheck size={14} /> Done</span>
+                                    {:else}
+                                        <span class="date-status"><Clock size={12} /> {task.date}</span>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+                    
+                    {#if col.cards.length === 0}
+                        <div class="empty-state">
+                            <p>No tasks found</p>
+                        </div>
                     {/if}
                 </div>
             </div>
         {/each}
-        <div class="card system-health-card">
-            <span class="label">SYSTEM HEALTH</span>
-            <div class="val-row">
-                <span class="value">Stable</span>
-                <div class="status-dot"></div>
-            </div>
-        </div>
     </div>
 
-    <!-- Kanban Section -->
-    <div class="kanban-section">
-        <div class="section-header">
-            <h2>Project Kanban</h2>
-            <div class="header-actions">
-                <button class="btn-filters"><Funnel size={14} /> Filters</button
-                >
-                <button class="btn-primary">New Task</button>
-                <button class="btn-link">View All</button>
-            </div>
-        </div>
-
-        <div class="kanban-grid">
-            {#each kanban as col}
-                <div class="kanban-col">
-                    <div class="col-header">
-                        <h3>{col.title}</h3>
-                        <span
-                            class="count"
-                            style="background: {col.color}15; color: {col.color}"
-                            >{col.count}</span
-                        >
-                    </div>
-
-                    <div class="card-list">
-                        {#each col.cards as card}
-                            <div
-                                class="task-card {card.archived
-                                    ? 'archived'
-                                    : ''}"
-                            >
-                                {#if card.priority}
-                                    <span
-                                        class="priority"
-                                        style="background: {card.pColor ===
-                                        '#edf2f7'
-                                            ? '#f1f3f7'
-                                            : '#fff5e6'}; color: {card.pColor ===
-                                        '#edf2f7'
-                                            ? '#718096'
-                                            : '#f39c12'}">{card.priority}</span
-                                    >
-                                {/if}
-
-                                <div class="task-body">
-                                    <h4>{card.title}</h4>
-                                    {#if card.project}
-                                        <p>Project: {card.project}</p>
-                                    {:else if card.sub}
-                                        <p class="sub-text">{card.sub}</p>
-                                    {/if}
-                                </div>
-
-                                <div class="task-footer">
-                                    {#if card.date}
-                                        <div class="avatars">
-                                            <div class="avatar"></div>
-                                            <div class="avatar"></div>
-                                        </div>
-                                        <span class="footer-meta"
-                                            ><Clock size={12} />
-                                            {card.date}</span
-                                        >
-                                    {:else if card.active}
-                                        <div class="avatars">
-                                            <div class="avatar"></div>
-                                            <div class="avatar"></div>
-                                        </div>
-                                        <span class="footer-meta active"
-                                            ><div class="dot pulse"></div>
-                                            Active</span
-                                        >
-                                    {:else if card.status}
-                                        <div class="avatar"></div>
-                                        <span class="footer-meta pending"
-                                            ><Activity size={12} />
-                                            {card.status}</span
-                                        >
-                                    {:else if card.archived}
-                                        <CircleCheck
-                                            size={16}
-                                            color="#4ecdc4"
-                                        />
-                                        <span class="archived-label"
-                                            >ARCHIVED</span
-                                        >
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                </div>
-            {/each}
-        </div>
-    </div>
-
-    <!-- Performance Section -->
-    <div class="performance-section">
-        <div class="section-header">
-            <div class="title-group">
-                <h2>Employee Performance</h2>
-                <p>Live metrics from active work cycles.</p>
-            </div>
-            <button class="download-link"
-                >Download Report <Download size={14} /></button
-            >
-        </div>
-
-        <div class="table-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>EMPLOYEE NAME</th>
-                        <th>ACTIVE PROJECT</th>
-                        <th>HOURS LOGGED</th>
-                        <th>EFFICIENCY</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each employees as emp}
-                        <tr>
-                            <td>
-                                <div class="emp-cell">
-                                    <div class="emp-avatar"></div>
-                                    <div class="emp-text">
-                                        <strong>{emp.name}</strong>
-                                        <span>{emp.role}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td
-                                ><span class="project-val">{emp.project}</span
-                                ></td
-                            >
-                            <td>
-                                <div class="hours-cell">
-                                    <div class="hours-text">
-                                        <span>{emp.hours}h / {emp.total}h</span>
-                                        <span
-                                            class="percent"
-                                            style="color: #654dcf"
-                                            >{Math.round(
-                                                (emp.hours / emp.total) * 100,
-                                            )}%</span
-                                        >
-                                    </div>
-                                    <div class="progress-bg">
-                                        <div
-                                            class="progress-fill"
-                                            style="width: {Math.min(
-                                                100,
-                                                (emp.hours / emp.total) * 100,
-                                            )}%"
-                                        ></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="eff-val">{emp.eff}</td>
-                            <td>
-                                <span
-                                    class="status-pill"
-                                    style="background: {emp.sColor}; color: {emp.sTextColor}"
-                                >
-                                    {emp.status}
-                                </span>
-                            </td>
-                            <td
-                                ><button class="action-btn"
-                                    ><ExternalLink size={16} /></button
-                                ></td
-                            >
-                        </tr>
-                    {/each}
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <CreateTaskModal bind:show={showCreateTaskModal} />
 </div>
 
 <style>
     .tasks-page {
         display: flex;
         flex-direction: column;
-        gap: 40px;
+        gap: 32px;
+        padding-bottom: 40px;
     }
 
-    /* Stats Row */
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+    /* Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
         gap: 20px;
     }
 
-    .stat-card,
-    .system-health-card {
-        background: white;
-        padding: 24px;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.02);
-    }
-
-    .system-health-card {
-        background: var(--primary);
-        color: white;
-    }
-
-    .label {
-        font-size: 10px;
-        font-weight: 800;
-        color: #a0aec0;
-        letter-spacing: 0.5px;
-    }
-    .system-health-card .label {
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .val-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 8px;
-        margin-top: 8px;
-    }
-    .value {
+    .header-left h1 {
         font-size: 24px;
         font-weight: 800;
-        color: #1a1a1a;
-    }
-    .system-health-card .value {
-        color: white;
-    }
-
-    .trend {
-        font-size: 12px;
-        font-weight: 800;
-        padding-bottom: 4px;
-    }
-    .sub {
-        font-size: 12px;
-        color: #a0aec0;
-        font-weight: 700;
-        padding-bottom: 4px;
-    }
-
-    .status-dot {
-        width: 10px;
-        height: 10px;
-        background: #4ecdc4;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        margin-bottom: 8px;
-    }
-
-    /* Kanban Section */
-    .section-header {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 24px;
+        align-items: center;
+        gap: 12px;
     }
-    .section-header h2 {
-        font-size: 16px;
-        font-weight: 800;
-        color: #1a1a1a;
+
+    .badge {
+        font-size: 10px;
+        background: #e8fdfa;
+        color: #4ecdc4;
+        padding: 4px 10px;
+        border-radius: 100px;
+        letter-spacing: 0.5px;
+    }
+
+    .header-left p {
+        font-size: 14px;
+        color: var(--text-sub);
+        margin-top: 4px;
     }
 
     .header-actions {
         display: flex;
+        gap: 12px;
         align-items: center;
-        gap: 16px;
+        flex-wrap: wrap;
     }
-    .btn-filters {
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        border: 1px solid var(--border);
+        padding: 10px 16px;
+        border-radius: 12px;
+        width: 300px;
+        max-width: 100%;
+        transition: all 0.3s;
+    }
+
+    .search-box:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(101, 77, 207, 0.1);
+    }
+
+    .search-box input {
+        border: none;
+        outline: none;
+        font-size: 13px;
+        width: 100%;
+        background: transparent;
+    }
+
+    .filter-dropdown {
         display: flex;
         align-items: center;
         gap: 8px;
-        border: 1px solid #edf2f7;
-        border-radius: 8px;
-        padding: 10px 16px;
+        background: white;
+        border: 1px solid var(--border);
+        padding: 10px 14px;
+        border-radius: 12px;
+        color: #a0aec0;
+    }
+
+    .filter-dropdown select {
+        border: none;
+        outline: none;
         font-size: 13px;
         font-weight: 700;
-        color: #4a5568;
+        color: var(--text-main);
+        cursor: pointer;
     }
+
     .btn-primary {
         background: var(--primary);
         color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 13px;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 14px;
         font-weight: 700;
-    }
-    .btn-link {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
     }
 
-    .kanban-grid {
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(101, 77, 207, 0.2);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 20px;
     }
 
-    .col-header {
+    .stat-card {
+        background: white;
+        padding: 24px;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.02);
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
+        flex-direction: column;
+        gap: 8px;
     }
-    .col-header h3 {
+
+    .stat-label {
         font-size: 11px;
         font-weight: 800;
         color: #a0aec0;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
     }
-    .count {
-        font-size: 10px;
+
+    .stat-main {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+    }
+
+    .stat-value {
+        font-size: 32px;
         font-weight: 800;
+        color: #1a1a1a;
+    }
+
+    .stat-trend {
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .stat-progress {
+        margin-top: 12px;
+    }
+
+    .progress-bar {
+        height: 6px;
+        border-radius: 100px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 100px;
+    }
+
+    /* Kanban Board */
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        align-items: start;
+    }
+
+    .kanban-column {
+        background: #f8fafc;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 500px;
+    }
+
+    .column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 8px;
+    }
+
+    .column-header .left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .column-header .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .column-header h3 {
+        font-size: 14px;
+        font-weight: 800;
+        color: #4a5568;
+    }
+
+    .column-header .count {
+        font-size: 11px;
+        font-weight: 800;
+        color: #a0aec0;
+        background: white;
         padding: 2px 8px;
         border-radius: 100px;
     }
 
-    .card-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        min-height: 200px;
-    }
-
-    .task-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid rgba(0, 0, 0, 0.02);
+    .task-list {
         display: flex;
         flex-direction: column;
         gap: 12px;
     }
 
-    .priority {
-        font-size: 8px;
-        font-weight: 800;
-        padding: 3px 8px;
-        border-radius: 4px;
-        width: fit-content;
+    /* Task Card */
+    .task-card {
+        background: white;
+        border-radius: 16px;
+        padding: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.02);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .task-body h4 {
-        font-size: 13px;
-        font-weight: 800;
-        color: #1a1a1a;
-        margin-bottom: 4px;
+    .task-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
     }
-    .task-body p {
-        font-size: 10px;
-        font-weight: 700;
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .priority-tag {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .task-card.high .priority-tag { background: #fff5e6; color: #f39c12; }
+    .task-card.medium .priority-tag { background: #f1f5f9; color: #64748b; }
+    .task-card.low .priority-tag { background: #e8fdfa; color: #4ecdc4; }
+
+    .more-btn {
         color: #a0aec0;
     }
-    .task-body p.sub-text {
-        color: #cbd5e0;
+
+    .task-content h4 {
+        font-size: 14px;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1.4;
+        margin-bottom: 4px;
+    }
+
+    .project-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: #a0aec0;
     }
 
     .task-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 4px;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
     }
-    .avatars {
+
+    .members {
         display: flex;
         align-items: center;
     }
-    .avatar {
-        width: 18px;
-        height: 18px;
+
+    .member-avatar {
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
         background: #e2e8f0;
-        border: 1.5px solid white;
-        margin-left: -6px;
-    }
-    .avatar:first-child {
-        margin-left: 0;
+        border: 2px solid white;
+        margin-left: -8px;
     }
 
-    .footer-meta {
-        font-size: 10px;
+    .member-avatar:first-child { margin-left: 0; }
+
+    .task-meta {
+        font-size: 11px;
         font-weight: 700;
-        color: #cbd5e0;
+    }
+
+    .active-status {
+        color: var(--primary);
         display: flex;
         align-items: center;
-        gap: 4px;
-    }
-    .footer-meta.active {
-        color: var(--primary);
-    }
-    .footer-meta.pending {
-        color: #f39c12;
+        gap: 6px;
     }
 
-    .dot.pulse {
+    .pulse-dot {
         width: 6px;
         height: 6px;
         background: var(--primary);
         border-radius: 50%;
-        animation: dotPulse 1.5s infinite ease-out;
-    }
-    @keyframes dotPulse {
-        0% {
-            transform: scale(1);
-            opacity: 1;
-        }
-        100% {
-            transform: scale(2.5);
-            opacity: 0;
-        }
+        animation: pulse 1.5s infinite;
     }
 
-    .archived {
-        background: #fdfdfd;
-        border-style: dashed;
-    }
-    .archived-label {
-        font-size: 10px;
-        font-weight: 800;
-        color: #4ecdc4;
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.5); opacity: 0.5; }
+        100% { transform: scale(1); opacity: 1; }
     }
 
-    /* Performance Section */
-    .title-group h2 {
-        margin-bottom: 4px;
-    }
-    .title-group p {
-        font-size: 13px;
-        color: #a0aec0;
-        font-weight: 600;
-    }
-    .download-link {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--primary);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
+    .done-status { color: #4ecdc4; display: flex; align-items: center; gap: 4px; }
+    .date-status { color: #a0aec0; display: flex; align-items: center; gap: 4px; }
 
-    .table-card {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.02);
-        overflow: hidden;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    th {
-        padding: 16px 24px;
-        text-align: left;
-        font-size: 11px;
-        font-weight: 800;
-        color: #a0aec0;
-        border-bottom: 1px solid #f7fafc;
-    }
-    td {
-        padding: 16px 24px;
-        border-bottom: 1px solid #f7fafc;
-    }
-
-    .emp-cell {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .emp-avatar {
-        width: 32px;
-        height: 32px;
-        background: #4a5568;
-        border-radius: 8px;
-    }
-    .emp-text {
-        display: flex;
-        flex-direction: column;
-    }
-    .emp-text strong {
-        font-size: 13px;
-        font-weight: 800;
-        color: #1a1a1a;
-    }
-    .emp-text span {
-        font-size: 11px;
-        color: #a0aec0;
-        font-weight: 600;
-    }
-
-    .project-val {
-        font-size: 12px;
-        font-weight: 700;
-        color: #4a5568;
-    }
-
-    .hours-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 160px;
-    }
-    .hours-text {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11px;
-        font-weight: 800;
-        color: #a0aec0;
-    }
-    .progress-bg {
-        height: 4px;
-        background: #f1f3f7;
-        border-radius: 2px;
-    }
-    .progress-fill {
-        height: 100%;
-        background: var(--primary);
-        border-radius: 2px;
-    }
-
-    .eff-val {
-        font-size: 13px;
-        font-weight: 800;
-        color: #4ecdc4;
-    }
-
-    .status-pill {
-        padding: 4px 12px;
-        border-radius: 100px;
-        font-size: 10px;
-        font-weight: 800;
-    }
-    .action-btn {
+    .empty-state {
+        text-align: center;
+        padding: 24px;
         color: #cbd5e0;
+        font-size: 13px;
+        font-weight: 600;
+        border: 2px dashed #edf2f7;
+        border-radius: 12px;
     }
 </style>

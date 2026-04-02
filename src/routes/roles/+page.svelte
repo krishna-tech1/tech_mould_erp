@@ -12,78 +12,136 @@
         Eye,
         PenLine,
         Trash2,
+        UserPlus,
+        ShieldAlert,
+        Check,
+        X
     } from "lucide-svelte";
+    import { fade, slide, scale } from "svelte/transition";
+    import CreateUserModal from "$lib/components/CreateUserModal.svelte";
+    import CreateRoleModal from "$lib/components/CreateRoleModal.svelte";
+
+    let showCreateUserModal = $state(false);
+    let showCreateRoleModal = $state(false);
+    let showMatrix = $state(false);
+    let selectedRole = $state("Admin");
+
+    // Tiered Roles System
+    const roles = ["Admin", "Management", "Project Leader", "Team Leader", "Employee"];
 
     const activeUsers = [
         {
-            name: "Johnnathan Doe",
-            email: "j.doe@techmould.com",
-            role: "Project Manager",
+            name: "Alexander Sterling",
+            email: "a.sterling@techmould.com",
+            role: "Admin",
         },
         {
-            name: "Sarah Chen",
-            email: "s.chen@techmould.com",
-            role: "Lead Designer",
+            name: "Nora Vivaldi",
+            email: "n.vivaldi@techmould.com",
+            role: "Project Leader",
         },
         {
-            name: "Marcus Knight",
-            email: "m.knight@techmould.com",
-            role: "Sales Executive",
+            name: "Kenji Tanaka",
+            email: "k.tanaka@techmould.com",
+            role: "Team Leader",
+        },
+        {
+            name: "Isabella Rossi",
+            email: "i.rossi@techmould.com",
+            role: "Employee",
         },
     ];
 
     const permissions = [
         {
-            module: "Inquiries & Quotations",
-            desc: "Lead pipeline management",
-            view: true,
-            edit: true,
-            delete: false,
+            module: "Dashboard",
+            desc: "Main overview of system metrics and real-time performance tracking.",
         },
         {
-            module: "Project Execution",
-            desc: "Active manufacturing projects",
-            view: true,
-            edit: true,
-            delete: true,
+            module: "Operations & Analytics",
+            desc: "Statistical breakdown of workshop operations and shop-floor efficiency.",
         },
         {
-            module: "Financial Reports",
-            desc: "Revenue and cost analysis",
-            view: true,
-            edit: false,
-            delete: false,
+            module: "Inquiry & Quotation",
+            desc: "Lead generation, pipeline management, and client price estimation.",
         },
         {
-            module: "Client Database",
-            desc: "Master records of customers",
-            view: true,
-            edit: true,
-            delete: false,
+            module: "Projects & Workflow",
+            desc: "Live manufacturing project tracking and milestone management.",
+        },
+        {
+            module: "Design & Revision",
+            desc: "Technical CAD drawings, visual assets, and design version control.",
+        },
+        {
+            module: "Clients",
+            desc: "Master database of corporate stakeholders, history, and records.",
+        },
+        {
+            module: "Communication",
+            desc: "Internal messaging hub and team collaboration center for leads.",
+        },
+        {
+            module: "Task Management",
+            desc: "Interactive Kanban board for itemized team tasks and priorities.",
+        },
+        {
+            module: "Data Management",
+            desc: "System-wide data archival, discovery, and secure file discovery.",
+        },
+        {
+            module: "Reports",
+            desc: "Consolidated financial audits and productivity data exports.",
+        },
+        {
+            module: "Role Management",
+            desc: "Access control, security protocols, and module visibility settings.",
+        },
+        {
+            module: "Audit Log",
+            desc: "Immutable record of all historical system activities for forensics.",
         },
     ];
 
+    // Reactive Permission Check logic
+    function isAllowed(moduleName: string, type: 'view' | 'edit' | 'delete', currentRole: string) {
+        if (currentRole === 'Admin') return true;
+        
+        if (currentRole === 'Management') {
+            const managementPages = ['Dashboard', 'Projects & Workflow', 'Clients', 'Reports'];
+            if (managementPages.includes(moduleName)) {
+                if (type === 'view') return true;
+                if (type === 'edit') return true; 
+                if (type === 'delete') return moduleName === 'Projects & Workflow';
+            }
+            return false;
+        }
+
+        if (type === 'view') return true;
+        return false;
+    }
+
     const stats = [
         {
-            count: 12,
-            title: "Administrators",
-            desc: "Full system access including financial settings and user management.",
-            label: "ACTIVE USERS",
+            count: 1,
+            title: "Executive Admin",
+            desc: "Primary system controllers with full root override and financial management.",
+            label: "S-TIER ACCESS",
             icon: ShieldCheck,
             color: "#654dcf",
         },
         {
-            count: 48,
-            title: "Managers & Leads",
-            desc: "Access to projects and operational workflows. Restricted financials.",
-            label: "ACTIVE USERS",
+            count: 5,
+            title: "Management Layer",
+            desc: "Strategic observers with project, client, and reporting privileges only.",
+            label: "RESTRICTED ACCESS",
             icon: Users,
             color: "#4ecdc4",
         },
         {
             count: 142,
-            title: "Permission Changes",
-            desc: "Recorded in the last 30 days. Security protocol: Regular review recommended.",
+            title: "Security Events",
+            desc: "Recorded in the last 30 days. Security protocol: Access reviewed by admin.",
             label: "AUDIT LOGS",
             icon: History,
             color: "white",
@@ -98,344 +156,427 @@
 </svelte:head>
 
 <div class="roles-page">
-    <!-- Header -->
     <div class="page-header">
         <div class="header-left">
             <h1>Role Management</h1>
             <p>Define system access levels and individual user permissions.</p>
         </div>
         <div class="header-actions">
-            <button class="btn-ghost">Export Logs</button>
-            <button class="btn-primary">Create New Role</button>
+            <button class="btn-ghost" onclick={() => alert("Exporting log...")}>Export Logs</button>
+            <button 
+                class="btn-matrix-toggle {showMatrix ? 'active' : ''}" 
+                onclick={() => showMatrix = !showMatrix}
+            >
+                {#if showMatrix}
+                    <X size={16} /> Close Matrix
+                {:else}
+                    <ShieldAlert size={16} /> Permissions Matrix
+                {/if}
+            </button>
+            <button class="btn-primary" onclick={() => showCreateRoleModal = true}>Create New Role</button>
         </div>
     </div>
 
-    <div class="main-grid">
-        <!-- Active Users Column -->
-        <section class="users-section">
+    <div class="main-layout {showMatrix ? 'grid-mode' : 'single-mode'}">
+        <section class="users-section card">
             <div class="section-top">
-                <h3>Active Users</h3>
+                <div class="title-row">
+                    <h3>Active Users</h3>
+                    <button
+                        class="btn-new-user"
+                        onclick={() => (showCreateUserModal = true)}
+                    >
+                        <UserPlus size={14} />
+                        New User
+                    </button>
+                </div>
             </div>
             <div class="user-list">
                 <div class="list-header">
-                    <span>USER</span>
-                    <span>CURRENT ROLE</span>
+                    <span>USER IDENTIFICATION</span>
+                    <span>ASSIGNED ROLE</span>
                 </div>
                 {#each activeUsers as user}
-                    <div class="user-row">
+                    <div class="user-row" transition:slide>
                         <div class="user-info">
                             <div class="text">
                                 <strong>{user.name}</strong>
                                 <span>{user.email}</span>
                             </div>
                         </div>
-                        <button class="role-selector">
+                        <div class="role-display" class:role-admin={user.role === 'Admin'} class:role-mgmt={user.role === 'Management'}>
                             {user.role}
-                            <ChevronDown size={14} />
-                        </button>
+                        </div>
                     </div>
                 {/each}
             </div>
         </section>
 
-        <!-- Permissions Matrix Panel -->
-        <section class="card matrix-panel">
-            <div class="matrix-header">
-                <div class="m-title">
-                    <h3>
-                        Permissions Matrix: <span class="role-name"
-                            >Project Manager</span
-                        >
-                    </h3>
+        {#if showMatrix}
+            <section class="matrix-panel card" in:fade={{ duration: 400 }}>
+                <div class="matrix-header">
+                    <div class="m-title">
+                        <h3>Role Architecture</h3>
+                        <div class="role-config-box">
+                            <ShieldCheck size={16} color="var(--primary)" />
+                            <select bind:value={selectedRole}>
+                                {#each roles as role}
+                                    <option value={role}>{role}</option>
+                                {/each}
+                            </select>
+                        </div>
+                    </div>
+                    <span class="editing-badge">{selectedRole === 'Admin' ? 'FULL PRIVILEGE' : 'RESTRICTED PRIVILEGE'}</span>
                 </div>
-                <span class="custom-badge">CUSTOM SET</span>
-            </div>
 
-            <div class="matrix-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>MODULE</th>
-                            <th>VIEW</th>
-                            <th>EDIT</th>
-                            <th>DELETE</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each permissions as perm}
+                <div class="matrix-table">
+                    <table>
+                        <thead>
                             <tr>
-                                <td>
-                                    <div class="module-cell">
-                                        <strong>{perm.module}</strong>
-                                        <p>{perm.desc}</p>
-                                    </div>
-                                </td>
-                                <td>
-                                    <label class="checkbox-container">
-                                        <input
-                                            type="checkbox"
-                                            checked={perm.view}
-                                        />
-                                        <span class="checkmark"></span>
-                                    </label>
-                                </td>
-                                <td>
-                                    <label class="checkbox-container">
-                                        <input
-                                            type="checkbox"
-                                            checked={perm.edit}
-                                        />
-                                        <span class="checkmark"></span>
-                                    </label>
-                                </td>
-                                <td>
-                                    <label class="checkbox-container">
-                                        <input
-                                            type="checkbox"
-                                            checked={perm.delete}
-                                        />
-                                        <span class="checkmark"></span>
-                                    </label>
-                                </td>
+                                <th>MODULE</th>
+                                <th>VIEW</th>
+                                <th>EDIT</th>
+                                <th>DELETE</th>
                             </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {#each permissions as perm}
+                                <tr class={selectedRole === 'Management' && ['Dashboard', 'Projects & Workflow', 'Clients', 'Reports'].includes(perm.module) ? 'highlight-row' : ''}>
+                                    <td>
+                                        <div class="module-cell">
+                                            <strong>{perm.module}</strong>
+                                            <p>{perm.desc}</p>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" checked={isAllowed(perm.module, 'view', selectedRole)} />
+                                            <span class="checkmark"></span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" checked={isAllowed(perm.module, 'edit', selectedRole)} />
+                                            <span class="checkmark"></span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" checked={isAllowed(perm.module, 'delete', selectedRole)} />
+                                            <span class="checkmark"></span>
+                                        </label>
+                                    </td>
+                                </tr>
+                            {/each}
+                        </tbody>
+                    </table>
+                </div>
 
-            <div class="matrix-footer">
-                <button class="btn-link">Reset to Default</button>
-                <button class="btn-save">Save Matrix</button>
-            </div>
-        </section>
+                <div class="matrix-footer">
+                    <button class="btn-cancel" onclick={() => showMatrix = false}>Discard</button>
+                    <button class="btn-save" onclick={() => alert('Permissions updated for ' + selectedRole)}>
+                        <Check size={16} /> Update Role Matrix
+                    </button>
+                </div>
+            </section>
+        {/if}
     </div>
 
-    <!-- Role Overview Stats -->
     <div class="stats-section">
         <div class="section-top">
-            <h3>Role Overview & Statistics</h3>
+            <h3>Role Hierarchy Overview</h3>
         </div>
         <div class="stats-grid">
             {#each stats as stat}
                 <div
-                    class="stat-card"
-                    style="background: {stat.bg || 'white'}; color: {stat.dark
-                        ? 'white'
-                        : '#1a1a1a'}"
+                    class="stat-card card"
+                    style="background: {stat.bg || 'white'}; color: {stat.dark ? 'white' : '#1a1a1a'}"
                 >
                     <div class="stat-header">
                         <div
                             class="icon-box"
-                            style="background: {stat.color}{stat.dark
-                                ? '40'
-                                : '15'}; color: {stat.color}"
+                            style="background: {stat.color}{stat.dark ? '40' : '15'}; color: {stat.color}"
                         >
                             <stat.icon size={18} />
                         </div>
-                        <span
-                            class="stat-label"
-                            style="color: {stat.dark
-                                ? 'rgba(255,255,255,0.6)'
-                                : '#a0aec0'}">{stat.label}</span
-                        >
+                        <span class="stat-label" style="color: {stat.dark ? 'rgba(255,255,255,0.6)' : '#a0aec0'}">
+                            {stat.label}
+                        </span>
                     </div>
                     <div class="stat-body">
                         <span class="count">{stat.count}</span>
                         <h4>{stat.title}</h4>
-                        <p
-                            style="color: {stat.dark
-                                ? 'rgba(255,255,255,0.7)'
-                                : '#718096'}"
-                        >
+                        <p style="color: {stat.dark ? 'rgba(255,255,255,0.7)' : '#718096'}">
                             {stat.desc}
                         </p>
                     </div>
-                    {#if stat.dark}
-                        <button class="view-history"
-                            >VIEW HISTORY <ArrowRight size={14} /></button
-                        >
-                    {/if}
                 </div>
             {/each}
         </div>
     </div>
+
+    <CreateUserModal bind:show={showCreateUserModal} />
+    <CreateRoleModal bind:show={showCreateRoleModal} />
 </div>
 
 <style>
     .roles-page {
         display: flex;
         flex-direction: column;
-        gap: 48px;
+        gap: 40px;
+        padding-bottom: 60px;
     }
 
     .page-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
     }
+
     .header-left h1 {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 800;
-        color: #1a1a1a;
         margin-bottom: 4px;
     }
+
     .header-left p {
-        font-size: 14px;
         color: var(--text-sub);
+        font-size: 14px;
     }
 
     .header-actions {
         display: flex;
-        gap: 16px;
+        gap: 12px;
+        align-items: center;
     }
+
     .btn-ghost {
         font-size: 13px;
         font-weight: 700;
-        color: #a0aec0;
-        background: #f8f9fc;
+        color: #718096;
         padding: 10px 20px;
-        border-radius: 8px;
+        background: #f1f5f9;
+        border-radius: 10px;
     }
+
+    .btn-matrix-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: white;
+        border: 1px solid var(--border);
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #4a5568;
+        transition: all 0.2s;
+    }
+
+    .btn-matrix-toggle.active {
+        background: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+        box-shadow: 0 4px 12px rgba(101, 77, 207, 0.1);
+    }
+
     .btn-primary {
         background: var(--primary);
         color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
+        padding: 10px 24px;
+        border-radius: 10px;
         font-size: 13px;
         font-weight: 700;
     }
 
-    .main-grid {
+    .main-layout {
         display: grid;
-        grid-template-columns: 1fr 1.6fr;
-        gap: 40px;
-        align-items: start;
+        gap: 32px;
+        transition: all 0.4s ease;
     }
 
-    /* Active Users */
-    .section-top h3 {
-        font-size: 16px;
-        font-weight: 800;
-        color: #1a1a1a;
+    .single-mode {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-mode {
+        grid-template-columns: 1fr 1.8fr;
+    }
+
+    .card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+    }
+
+    .title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 24px;
+    }
+
+    .title-row h3 {
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .btn-new-user {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f0edff;
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 8px 14px;
+        border-radius: 8px;
     }
 
     .list-header {
         display: flex;
         justify-content: space-between;
-        padding: 0 10px 12px;
+        padding: 0 8px 12px;
         font-size: 10px;
         font-weight: 800;
         color: #cbd5e0;
         letter-spacing: 0.5px;
     }
 
-    .user-list {
-        display: flex;
-        flex-direction: column;
-    }
     .user-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 12px;
-        border-bottom: 1px solid #f7fafc;
+        padding: 16px 8px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.2s;
     }
-    .user-info {
-        display: flex;
-        align-items: center;
-        gap: 16px;
+
+    .user-row:hover {
+        background: #fcfdfe;
     }
-    .text {
-        display: flex;
-        flex-direction: column;
-    }
+
     .text strong {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
+        display: block;
     }
+
     .text span {
         font-size: 11px;
         color: #a0aec0;
         font-weight: 600;
     }
 
-    .role-selector {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .role-display {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--primary);
+        background: #f0edff;
+        padding: 4px 12px;
+        border-radius: 6px;
     }
 
-    /* Permissions Matrix */
-    .matrix-panel {
-        padding: 32px;
-        border: 1px solid rgba(0, 0, 0, 0.02);
+    .role-admin {
+        background: #fff5e6;
+        color: #e67e22;
     }
+
+    .role-mgmt {
+        background: #e6fffa;
+        color: #319795;
+    }
+
     .matrix-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 32px;
     }
+
     .m-title h3 {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 800;
-        color: #a0aec0;
+        color: #718096;
+        margin-bottom: 12px;
     }
-    .role-name {
+
+    .role-config-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        padding: 10px 16px;
+        border-radius: 12px;
+    }
+
+    .role-config-box select {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        font-weight: 700;
         color: var(--primary);
+        outline: none;
+        cursor: pointer;
     }
-    .custom-badge {
+
+    .editing-badge {
         font-size: 9px;
         font-weight: 800;
         color: #4ecdc4;
         background: #e8fdfa;
         padding: 4px 10px;
-        border-radius: 4px;
+        border-radius: 6px;
     }
 
     .matrix-table table {
         width: 100%;
         border-collapse: collapse;
     }
+
     .matrix-table th {
         text-align: left;
-        padding: 12px 16px;
+        padding: 12px;
         font-size: 10px;
         font-weight: 800;
         color: #cbd5e0;
-        border-bottom: 1px solid #f7fafc;
+        border-bottom: 1px solid #f1f5f9;
     }
+
     .matrix-table td {
-        padding: 24px 16px;
-        border-bottom: 1px solid #f7fafc;
+        padding: 20px 12px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .highlight-row {
+        background: #f0f3ff50;
     }
 
     .module-cell strong {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
-        color: #1a1a1a;
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
+
     .module-cell p {
         font-size: 11px;
         color: #a0aec0;
         font-weight: 600;
     }
 
-    /* Custom Checkbox */
     .checkbox-container {
         display: block;
         position: relative;
         padding-left: 20px;
         cursor: pointer;
-        font-size: 18px;
-        user-select: none;
     }
+
     .checkbox-container input {
         position: absolute;
         opacity: 0;
@@ -443,33 +584,33 @@
         height: 0;
         width: 0;
     }
+
     .checkmark {
         position: absolute;
         top: -10px;
         left: 0;
         height: 20px;
         width: 20px;
-        background-color: white;
-        border: 2px solid #e1e4ed;
+        background: white;
+        border: 2px solid #e2e8f0;
         border-radius: 6px;
         transition: all 0.2s;
     }
+
     .checkbox-container:hover input ~ .checkmark {
         border-color: var(--primary);
     }
+
     .checkbox-container input:checked ~ .checkmark {
-        background-color: var(--primary);
+        background: var(--primary);
         border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(101, 77, 207, 0.2);
     }
+
     .checkmark:after {
         content: "";
         position: absolute;
         display: none;
-    }
-    .checkbox-container input:checked ~ .checkmark:after {
-        display: block;
-    }
-    .checkbox-container .checkmark:after {
         left: 6px;
         top: 2px;
         width: 4px;
@@ -479,86 +620,85 @@
         transform: rotate(45deg);
     }
 
+    .checkbox-container input:checked ~ .checkmark:after {
+        display: block;
+    }
+
     .matrix-footer {
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        gap: 32px;
+        gap: 24px;
         margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #f1f5f9;
     }
-    .btn-link {
-        font-size: 12px;
+
+    .btn-cancel {
+        font-size: 13px;
         font-weight: 700;
         color: #a0aec0;
     }
+
     .btn-save {
         background: var(--primary);
         color: white;
         padding: 12px 24px;
-        border-radius: 8px;
+        border-radius: 10px;
         font-size: 13px;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
-    /* Stats Section */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 24px;
     }
+
     .stat-card {
-        padding: 32px;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.02);
         display: flex;
         flex-direction: column;
         gap: 24px;
     }
+
     .stat-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
+
     .icon-box {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
+
     .stat-label {
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.5px;
     }
 
-    .stat-body {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .stat-body .count {
-        font-size: 28px;
+    .count {
+        font-size: 32px;
         font-weight: 800;
-    }
-    .stat-body h4 {
-        font-size: 14px;
-        font-weight: 800;
-    }
-    .stat-body p {
-        font-size: 11px;
-        font-weight: 600;
-        line-height: 1.6;
     }
 
-    .view-history {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11px;
+    .stat-body h4 {
+        font-size: 15px;
         font-weight: 800;
-        color: white;
-        margin-top: auto;
+        margin-bottom: 4px;
+    }
+
+    .stat-body p {
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.6;
     }
 </style>

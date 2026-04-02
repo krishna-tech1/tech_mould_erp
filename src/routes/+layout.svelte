@@ -3,6 +3,8 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
+    import { fade, scale, fly } from "svelte/transition";
+    import { cubicOut } from "svelte/easing";
     import {
         LayoutGrid,
         Activity,
@@ -24,37 +26,150 @@
         Plus,
         LogOut,
         CircleAlert,
+        CheckCircle2,
+        FolderOpen,
+        Headphones,
     } from "lucide-svelte";
+    import CreateProjectModal from "$lib/components/CreateProjectModal.svelte";
 
-    const navItems = [
-        { name: "Dashboard", icon: LayoutGrid, href: "/" },
-        { name: "Operations & Analytics", icon: Activity, href: "/operations" },
-        { name: "Inquiry & Quotation", icon: Banknote, href: "/inquiry" },
-        { name: "Projects & Workflow", icon: Network, href: "/projects" },
-        { name: "Design & Revision", icon: Palette, href: "/design" },
-        { name: "Clients", icon: Users, href: "/clients" },
+    const allNavItems = [
+        { name: "Dashboard", role: "all", icon: LayoutGrid, href: "/" },
+        {
+            name: "Approvals",
+            role: "exec",
+            icon: CheckCircle2,
+            href: "/approvals",
+        },
+        {
+            name: "Operations & Analytics",
+            role: "admin",
+            icon: Activity,
+            href: "/operations",
+        },
+        {
+            name: "Inquiry & Quotation",
+            role: "admin",
+            icon: Banknote,
+            href: "/inquiry",
+        },
+        {
+            name: "Projects & Workflow",
+            role: "exec",
+            icon: Network,
+            href: "/projects",
+        },
+        {
+            name: "Design & Revision",
+            role: "admin",
+            icon: Palette,
+            href: "/design",
+        },
+        { name: "Clients", role: "exec", icon: Users, href: "/clients" },
         {
             name: "Communication",
+            role: "exec",
             icon: MessageSquareText,
             href: "/communication",
         },
-        { name: "Task Management", icon: ClipboardList, href: "/tasks" },
-        { name: "Data Management", icon: Database, href: "/data" },
-        { name: "Reports", icon: BarChart3, href: "/reports" },
-        { name: "Role Management", icon: ShieldCheck, href: "/roles" },
-        { name: "Audit Log", icon: History, href: "/audit" },
+        {
+            name: "Task Management",
+            role: "admin",
+            icon: ClipboardList,
+            href: "/tasks",
+        },
+        {
+            name: "Data Management",
+            role: "admin",
+            icon: Database,
+            href: "/data",
+        },
+        { name: "Reports", role: "exec", icon: BarChart3, href: "/reports" },
+        {
+            name: "Role Management",
+            role: "admin",
+            icon: ShieldCheck,
+            href: "/roles",
+        },
+        { name: "Audit Log", role: "admin", icon: History, href: "/audit" },
+
+        // Client Specific
+        {
+            name: "My Project",
+            role: "client",
+            icon: FolderOpen,
+            href: "/my-projects",
+        },
+        {
+            name: "Client Approvals",
+            role: "client",
+            icon: CheckCircle2,
+            href: "/client-approvals",
+        },
+        {
+            name: "Quotations",
+            role: "client",
+            icon: Banknote,
+            href: "/quotations",
+        },
+        {
+            name: "Design & Files",
+            role: "client",
+            icon: Palette,
+            href: "/files",
+        },
+        {
+            name: "Client Chat",
+            role: "client",
+            icon: MessageSquareText,
+            href: "/chat",
+        },
+        { name: "History", role: "client", icon: History, href: "/history" },
     ];
 
+    let userRole = $state("");
     let isCollapsed = $state(false);
     let showLogoutModal = $state(false);
+    let showCreateProjectModal = $state(false);
     let { children } = $props();
+
+    const navItems = $derived.by(() => {
+        if (!userRole) return [];
+        if (userRole === "admin")
+            return allNavItems.filter((item) =>
+                ["all", "exec", "admin"].includes(item.role),
+            );
+        if (userRole === "management")
+            return allNavItems.filter((item) =>
+                ["all", "exec"].includes(item.role),
+            );
+        if (userRole === "client") {
+            return [
+                { name: "Dashboard", icon: LayoutGrid, href: "/" },
+                { name: "My Project", icon: FolderOpen, href: "/my-projects" },
+                {
+                    name: "Approvals",
+                    icon: CheckCircle2,
+                    href: "/client-approvals",
+                },
+                { name: "Quotations", icon: Banknote, href: "/quotations" },
+                { name: "Design & Files", icon: Palette, href: "/files" },
+                {
+                    name: "Communication",
+                    icon: MessageSquareText,
+                    href: "/chat",
+                },
+                { name: "History", icon: History, href: "/history" },
+            ];
+        }
+        return allNavItems.filter((item) => item.role === "all");
+    });
 
     function toggleSidebar() {
         isCollapsed = !isCollapsed;
     }
-
     function confirmLogout() {
         localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("userRole");
         window.location.href = "/login";
     }
 
@@ -65,41 +180,46 @@
 
     onMount(() => {
         const isAuth = localStorage.getItem("isAuthenticated") === "true";
-
-        if (!isAuth && !isLoginPage) {
-            goto("/login");
-        } else if (isAuth && isLoginPage) {
-            goto("/");
-        }
-
-        // Always clear the loading state so the destination page properly renders
+        userRole = localStorage.getItem("userRole") || "";
+        if (!isAuth && !isLoginPage) goto("/login");
+        else if (isAuth && isLoginPage) goto("/");
         isCheckingAuth = false;
     });
 </script>
 
+<svelte:head>
+    <title
+        >TechMould | {userRole === "client"
+            ? "Client Portal"
+            : "ERP System"}</title
+    >
+</svelte:head>
+
 {#if isCheckingAuth}
-    <div class="loading-state">
-        <div class="spinner"></div>
-    </div>
+    <div class="loading-state"><div class="spinner"></div></div>
 {:else if isLoginPage}
     {@render children()}
 {:else}
-    <div class="layout">
-        <!-- Sidebar -->
+    <div class="layout" class:client-layout={userRole === "client"}>
+        <!-- Sidebar with Premium Backdrop -->
         <aside class="sidebar {isCollapsed ? 'collapsed' : ''}">
             <div class="sidebar-header">
                 <div class="logo">
-                    <div class="logo-icon">TM</div>
+                    <div class="logo-icon scale-up">TM</div>
                     {#if !isCollapsed}
-                        <div class="logo-text">
+                        <div class="logo-text" in:fade={{ delay: 100 }}>
                             <strong>TechMould</strong>
-                            <span>ERP ADMIN</span>
+                            <span class="role-badge"
+                                >{userRole === "client"
+                                    ? "CLIENT"
+                                    : "ERP " + userRole?.toUpperCase()}</span
+                            >
                         </div>
                     {/if}
                 </div>
-                <button class="toggle-btn" onclick={toggleSidebar}>
-                    <ChevronLeft size={20} />
-                </button>
+                <button class="toggle-btn" onclick={toggleSidebar}
+                    ><ChevronLeft size={18} /></button
+                >
             </div>
 
             <nav class="nav-menu">
@@ -109,593 +229,578 @@
                         href={item.href}
                         class="nav-item {isActive ? 'active' : ''}"
                     >
-                        <span class="icon">
-                            <item.icon size={20} strokeWidth={2} />
+                        <span class="icon" class:pulse={isActive}>
+                            <item.icon
+                                size={20}
+                                strokeWidth={isActive ? 2.5 : 2}
+                            />
                         </span>
-                        {#if !isCollapsed}
-                            <span class="name">{item.name}</span>
-                        {/if}
+                        {#if !isCollapsed}<span class="name">{item.name}</span
+                            >{/if}
                     </a>
                 {/each}
+                {#if userRole === "client"}
+                    <div class="nav-divider"></div>
+                    <a href="/settings" class="nav-item"
+                        ><span class="icon"><Settings size={20} /></span>{#if !isCollapsed}<span class="name">Settings</span>{/if}</a
+                    >
+                    <a href="/support" class="nav-item"
+                        ><span class="icon"><Headphones size={20} /></span>{#if !isCollapsed}<span class="name">Support</span>{/if}</a
+                    >
+                {/if}
             </nav>
 
             <div class="sidebar-bottom">
-                {#if !isCollapsed}
-                    <div class="storage-card">
-                        <div class="storage-info">
-                            <span>STORAGE USED</span>
-                            <span class="percent">71%</span>
+                {#if userRole !== "client" && !isCollapsed}
+                    <div class="storage-container">
+                        <div class="storage-stats">
+                            <span>DATA VAULT</span><span class="percent"
+                                >71%</span
+                            >
                         </div>
-                        <div class="progress-bar">
-                            <div class="progress" style="width: 71%"></div>
+                        <div class="progress-track">
+                            <div class="bar" style="width: 71%"></div>
                         </div>
-                        <span class="storage-detail">14.2 GB of 20 GB used</span
-                        >
-                    </div>
-                {:else}
-                    <div class="storage-mini">
-                        <Database size={16} />
+                        <span class="detail">14.2 GB of 20 GB used</span>
                     </div>
                 {/if}
             </div>
         </aside>
 
-        <!-- Main Content Area -->
         <div class="main-container">
-            <!-- Header -->
-            <header class="header">
+            <!-- Glass Header -->
+            <header class="header glass">
                 <div class="header-left">
                     {#if isCollapsed}
-                        <button class="menu-btn" onclick={toggleSidebar}>
-                            <Menu size={20} />
-                        </button>
+                        <button class="menu-btn" onclick={toggleSidebar}
+                            ><Menu size={20} /></button
+                        >
                     {/if}
-
-                    <div class="search-bar">
+                    <div class="search-engine">
                         <Search size={18} class="search-icon" />
                         <input
                             type="text"
-                            placeholder="Search projects, clients, or inquiries..."
+                            placeholder={userRole === "client"
+                                ? "Find projects, files or chats..."
+                                : "Global search..."}
                         />
+                        <span class="kb-hint">TM</span>
                     </div>
                 </div>
 
                 <div class="header-actions">
-                    <button class="btn-light">Inquiry</button>
-                    <button class="btn-primary">
-                        <Plus size={18} />
-                        Project
-                    </button>
-                    <div class="icon-group">
-                        <button class="icon-btn"><Bell size={20} /></button>
-                        <button class="icon-btn"><Settings size={20} /></button>
+                    {#if userRole !== "client"}
+                        <div class="action-buttons">
+                            <button class="btn-ghost">Inquiry</button>
+                            <button
+                                class="btn-premium"
+                                onclick={() => (showCreateProjectModal = true)}
+                            >
+                                <Plus size={18} />
+                                New Project
+                            </button>
+                        </div>
+                    {/if}
+
+                    <div class="utility-icons">
+                        <button class="icon-nav"
+                            ><Bell size={20} /><span class="dot"></span></button
+                        >
                         <button
-                            class="icon-btn logout-btn"
+                            class="icon-nav logout"
                             onclick={() => (showLogoutModal = true)}
-                            title="Log Out"><LogOut size={20} /></button
+                            ><LogOut size={20} /></button
                         >
                     </div>
-                    <div class="profile">
-                        <div class="pfp"></div>
-                        <div class="profile-info">
-                            <span class="profile-name">Alex Rivers</span>
-                            <span class="profile-role">Admin Manager</span>
+
+                    <div class="user-block">
+                        <div class="user-meta">
+                            <span class="user-name"
+                                >{userRole === "client"
+                                    ? "Alex Rivera"
+                                    : "Admin Manager"}</span
+                            >
+                            <span class="user-tier"
+                                >{userRole === "client"
+                                    ? "Premium Client"
+                                    : "Executive " +
+                                      userRole?.toUpperCase()}</span
+                            >
                         </div>
                     </div>
                 </div>
             </header>
 
-            <!-- Page Content -->
             <main class="content">
-                {@render children()}
+                <div class="content-wrapper" in:fade={{ duration: 400 }}>
+                    {@render children()}
+                </div>
             </main>
         </div>
     </div>
 
-    <!-- Logout Confirmation Modal -->
+    <!-- UI Improved Logout Modal -->
     {#if showLogoutModal}
-        <div class="modal-backdrop">
-            <div class="logout-modal">
-                <div class="modal-icon-box">
-                    <CircleAlert size={24} color="#f39c12" />
-                </div>
-                <h3>Log Out</h3>
+        <div class="modal-overlay" transition:fade={{ duration: 200 }}>
+            <div
+                class="modal-card"
+                transition:fly={{ y: 20, duration: 400, easing: cubicOut }}
+            >
+                <div class="modal-icon warning"><CircleAlert size={32} /></div>
+                <h3>Terminate Session</h3>
                 <p>
-                    Are you sure you want to log out of the Admin ERP dashboard?
-                    You will need your credentials to access it again.
+                    You are about to sign out of the TechMould portal. Your
+                    active session will be securely closed.
                 </p>
-                <div class="modal-actions">
+                <div class="modal-footer">
                     <button
                         class="btn-cancel"
-                        onclick={() => (showLogoutModal = false)}>Cancel</button
+                        onclick={() => (showLogoutModal = false)}
+                        >Keep Exploring</button
                     >
                     <button class="btn-danger" onclick={confirmLogout}
-                        >Log Out</button
+                        >Sign Out Now</button
                     >
                 </div>
             </div>
         </div>
     {/if}
+
+    <CreateProjectModal bind:show={showCreateProjectModal} />
 {/if}
 
 <style>
+    /* Premium Root Styles */
+    :global(:root) {
+        --primary: #654dcf;
+        --primary-light: #f5f3ff;
+        --secondary: #4ecdc4;
+        --text-base: #1e293b;
+        --text-dim: #64748b;
+        --bg-main: #f8fafc;
+        --border-soft: #f1f5f9;
+        --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.03);
+        --glass-bg: rgba(255, 255, 255, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.18);
+    }
+
     .layout {
         display: flex;
         height: 100vh;
         overflow: hidden;
+        background: var(--bg-main);
+        font-family: "Inter", sans-serif;
+    }
+    .client-layout {
+        background: #ffffff;
     }
 
+    /* Sidebar Refinement */
     .sidebar {
-        width: 260px;
-        background: var(--bg-sidebar);
-        border-right: 1px solid var(--border);
+        width: 280px;
+        min-width: 280px;
+        flex-shrink: 0;
+        background: #ffffff;
+        border-right: 1px solid var(--border-soft);
         display: flex;
         flex-direction: column;
-        padding: 24px 0;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
+        padding: 32px 0;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         z-index: 100;
-        overflow: hidden;
+        overflow-x: hidden;
     }
 
     .sidebar.collapsed {
         width: 0;
-        padding-left: 0;
-        padding-right: 0;
+        min-width: 0;
+        flex-basis: 0;
+        padding: 0;
         border-right: none;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .sidebar-bottom {
+        padding: 0 20px;
+        margin-top: auto;
+    }
+
+    .storage-container {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border-soft);
+    }
+    .storage-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .storage-stats span {
+        font-size: 10px;
+        font-weight: 800;
+        color: #94a3b8;
+        letter-spacing: 0.5px;
+    }
+    .storage-stats .percent {
+        color: var(--primary);
+    }
+    .progress-track {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+    .progress-track .bar {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 10px;
+        transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .storage-container .detail {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
     }
 
     .sidebar-header {
+        padding: 0 32px;
+        margin-bottom: 48px;
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding: 0 24px;
-        margin-bottom: 32px;
-        height: 40px;
-    }
-
-    .sidebar.collapsed .sidebar-header {
-        padding: 0;
-        justify-content: center;
+        align-items: center;
     }
 
     .logo {
         display: flex;
         align-items: center;
-        gap: 12px;
-        overflow: hidden;
+        gap: 16px;
     }
-
     .logo-icon {
         background: var(--primary);
         color: white;
-        min-width: 32px;
-        height: 32px;
+        min-width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        border-radius: 6px;
-        font-size: 14px;
-        flex-shrink: 0;
+        font-weight: 800;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(101, 77, 207, 0.2);
     }
 
     .logo-text {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.2;
         white-space: nowrap;
+        overflow: hidden;
     }
-
     .logo-text strong {
-        font-size: 16px;
-        color: #1a1a1a;
+        display: block;
+        font-size: 18px;
+        color: var(--text-base);
+        line-height: 1.1;
     }
-
-    .logo-text span {
+    .role-badge {
         font-size: 10px;
-        color: var(--text-sub);
-        letter-spacing: 0.5px;
-    }
-
-    .toggle-btn {
-        color: var(--text-sub);
-        padding: 4px;
-        border-radius: 4px;
-        transition: background 0.2s;
-    }
-
-    .toggle-btn:hover {
-        background: #f1f2f6;
+        font-weight: 800;
         color: var(--primary);
-        transform: scale(1.1);
-    }
-
-    .toggle-btn:active {
-        transform: scale(0.95);
-    }
-
-    .sidebar.collapsed .toggle-btn {
-        position: absolute;
-        bottom: -40px; /* Hidden or adjusted for collapsed state if needed */
-        display: none;
-    }
-
-    /* Optional: Hover to show toggle when collapsed or keep a toggle button elsewhere */
-    .sidebar.collapsed .logo {
-        margin-bottom: 0;
-    }
-
-    /* Redefine toggle button for collapsed state */
-    .sidebar.collapsed .sidebar-header {
-        flex-direction: column;
-        gap: 20px;
-        height: auto;
+        letter-spacing: 1px;
     }
 
     .nav-menu {
         flex: 1;
-        overflow-y: auto;
-        padding: 0 12px;
+        padding: 0 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
     }
 
     .nav-item {
-        width: 100%;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px;
-        margin-bottom: 4px;
-        border-radius: 8px;
-        color: var(--text-sub);
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s;
-        text-align: left;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        color: var(--text-dim);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14.5px;
+        transition: all 0.3s ease;
         white-space: nowrap;
-    }
-
-    .sidebar.collapsed .nav-item {
-        justify-content: center;
-        padding: 12px 0;
+        overflow: hidden;
     }
 
     .nav-item:hover {
+        background: #f8fafc;
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+    .nav-item.active {
         background: var(--primary-light);
         color: var(--primary);
-        padding-left: 14px; /* subtle shift right */
     }
 
-    .nav-item.active {
-        background: var(--primary);
-        color: white;
-        box-shadow: 0 4px 12px rgba(101, 77, 207, 0.2);
+    .nav-divider {
+        height: 1px;
+        background: var(--border-soft);
+        margin: 24px 0;
     }
 
-    .nav-item:active {
-        transform: scale(0.98);
-    }
-
-    .sidebar-bottom {
-        padding: 0 12px;
-        margin-top: 20px;
-    }
-
-    .storage-card {
-        background: #f8f9fc;
-        padding: 16px;
-        border-radius: 12px;
-    }
-
-    .storage-mini {
-        display: flex;
-        justify-content: center;
-        color: var(--text-sub);
-        padding: 12px 0;
-    }
-
-    .storage-info {
-        display: flex;
-        justify-content: space-between;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-sub);
-        margin-bottom: 8px;
-    }
-
-    .progress-bar {
-        height: 6px;
-        background: #e1e4ed;
-        border-radius: 3px;
-        overflow: hidden;
-        margin-bottom: 8px;
-    }
-
-    .progress {
-        height: 100%;
-        background: var(--primary);
-    }
-
-    .storage-detail {
-        font-size: 10px;
-        color: var(--text-sub);
-    }
-
-    /* Header & Main */
+    /* Main Container & Glass Header */
     .main-container {
         flex: 1;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        position: relative;
     }
 
     .header {
-        height: 70px;
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
+        height: 90px;
+        padding: 0 48px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 32px;
+        border-bottom: 1px solid var(--border-soft);
+        z-index: 50;
     }
 
-    .header-left {
+    .header.glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .search-engine {
+        background: #f1f5f9;
+        border-radius: 14px;
+        padding: 0 20px;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
+        width: 380px;
+        border: 1px solid transparent;
+        transition: all 0.2s;
     }
 
-    .menu-btn {
-        color: var(--text-sub);
-        padding: 8px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.2s;
-        background: #f4f7fa;
+    .search-engine:focus-within {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(101, 77, 207, 0.08);
     }
 
-    .menu-btn:hover {
-        background: #eef1f5;
-    }
-
-    .search-bar {
-        background: #f4f7fa;
-        border-radius: 8px;
-        padding: 0 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 400px;
-    }
-
-    .search-bar :global(.search-icon) {
-        color: var(--text-sub);
-    }
-
-    .search-bar input {
+    .search-engine input {
         border: none;
-        background: none;
-        padding: 10px 0;
-        width: 100%;
-        outline: none;
+        background: transparent;
+        padding: 14px 0;
         font-size: 14px;
-        height: 100%;
+        color: var(--text-base);
+        outline: none;
+        width: 100%;
+    }
+    .kb-hint {
+        font-size: 10px;
+        font-weight: 700;
+        color: #94a3b8;
+        background: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
     }
 
     .header-actions {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 32px;
     }
 
-    .btn-light {
-        background: #f1f2f6;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
+    .action-buttons {
+        display: flex;
+        gap: 14px;
     }
-
-    .btn-primary {
+    .btn-premium {
         background: var(--primary);
         color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-weight: 700;
         font-size: 14px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        box-shadow: 0 4px 20px rgba(101, 77, 207, 0.2);
+        transition: all 0.2s;
+    }
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(101, 77, 207, 0.3);
     }
 
-    .icon-group {
+    .utility-icons {
         display: flex;
-        gap: 15px;
-        border-right: 1px solid var(--border);
-        padding-right: 20px;
-        color: var(--text-sub);
+        gap: 16px;
+        border-right: 1px solid var(--border-soft);
+        padding-right: 32px;
     }
-
-    .icon-btn {
+    .icon-nav {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
+        justify-content: center;
+        color: var(--text-dim);
+        transition: all 0.2s;
     }
-
-    .profile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    .icon-nav:hover {
+        background: #f8fafc;
+        color: var(--primary);
     }
-
-    .pfp {
-        width: 40px;
-        height: 40px;
-        background: #000;
+    .icon-nav .dot {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 8px;
+        height: 8px;
+        background: #ef4444;
         border-radius: 50%;
+        border: 2px solid white;
     }
 
-    .profile-info {
+    .user-block {
         display: flex;
-        flex-direction: column;
-        line-height: 1.2;
+        align-items: center;
+        gap: 18px;
     }
-
-    .profile-name {
-        font-weight: 600;
-        font-size: 14px;
+    .user-meta {
+        text-align: right;
     }
-
-    .profile-role {
+    .user-name {
+        display: block;
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-base);
+    }
+    .user-tier {
         font-size: 11px;
-        color: var(--text-sub);
+        font-weight: 600;
+        color: var(--text-dim);
     }
 
     .content {
         flex: 1;
         overflow-y: auto;
-        padding: 32px;
+        padding: 48px;
     }
 
-    /* Custom scrollbar */
-    nav::-webkit-scrollbar {
-        width: 4px;
-    }
-    nav::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 2px;
-    }
-
-    /* Logout Modal */
-    .logout-btn {
-        color: #e53e3e;
-        transition: color 0.2s;
-    }
-    .logout-btn:hover {
-        color: #c53030;
-    }
-
-    .modal-backdrop {
+    /* Modal Redesign */
+    .modal-overlay {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(10px);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 9999;
+        z-index: 2000;
     }
-
-    .logout-modal {
+    .modal-card {
         background: white;
-        width: 360px;
-        border-radius: 12px;
-        padding: 32px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        width: 440px;
+        padding: 56px 48px;
+        border-radius: 32px;
         text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.2);
     }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .modal-icon-box {
-        width: 56px;
-        height: 56px;
-        background: #fff5e6;
+    .modal-icon.warning {
+        background: #fff1f2;
+        color: #e11d48;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 20px;
+        margin: 0 auto 32px;
     }
-
-    .logout-modal h3 {
-        font-size: 20px;
+    .modal-card h3 {
+        font-size: 24px;
         font-weight: 800;
-        color: #1a1a1a;
-        margin-bottom: 12px;
+        color: #0f172a;
+        margin-bottom: 16px;
     }
-
-    .logout-modal p {
-        font-size: 13px;
-        color: #718096;
+    .modal-card p {
+        font-size: 15px;
+        color: #64748b;
         line-height: 1.6;
-        margin-bottom: 32px;
-        font-weight: 500;
+        margin-bottom: 40px;
     }
 
-    .modal-actions {
+    .modal-footer {
         display: flex;
-        width: 100%;
+        flex-direction: column;
         gap: 12px;
     }
-
-    .btn-cancel {
-        flex: 1;
-        padding: 12px;
-        background: #f1f3f7;
-        color: #4a5568;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 700;
-        transition: background 0.2s;
-    }
-
-    .btn-cancel:hover {
-        background: #e2e8f0;
-    }
-
     .btn-danger {
-        flex: 1;
-        padding: 12px;
-        background: #e53e3e;
+        background: #e11d48;
         color: white;
-        border-radius: 8px;
-        font-size: 13px;
+        padding: 16px;
+        border-radius: 14px;
         font-weight: 700;
-        transition: background 0.2s;
+        font-size: 15px;
+        box-shadow: 0 10px 20px rgba(225, 29, 72, 0.2);
+    }
+    .btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 16px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 15px;
     }
 
-    .btn-danger:hover {
-        background: #c53030;
-    }
-
-    /* Full Screen Loading Guard */
     .loading-state {
-        display: flex;
-        justify-content: center;
-        align-items: center;
         height: 100vh;
-        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: white;
     }
     .spinner {
-        width: 28px;
-        height: 28px;
-        border: 3px solid #edf2f7;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f1f5f9;
         border-top-color: var(--primary);
         border-radius: 50%;
-        animation: spin-global 0.8s linear infinite;
+        animation: spin 1s linear infinite;
     }
-    @keyframes spin-global {
+    @keyframes spin {
         to {
             transform: rotate(360deg);
+        }
+    }
+
+    /* Micro-Animations */
+    .scale-up:hover {
+        transform: scale(1.05);
+    }
+    .pulse {
+        animation: pulse-soft 2s infinite;
+    }
+    @keyframes pulse-soft {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+        100% {
+            opacity: 1;
         }
     }
 </style>

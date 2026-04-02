@@ -11,72 +11,59 @@
         Funnel,
         Download,
     } from "lucide-svelte";
+    import { fade } from "svelte/transition";
 
-    const stats = [
-        {
-            label: "TOTAL ACTIVE PROJECTS",
-            value: "42",
-            trend: "+12%",
-            trendSub: "vs last month",
-            icon: LayoutGrid,
-            color: "#654dcf",
-        },
-        {
-            label: "ON-TRACK MILESTONES",
-            value: "89%",
-            trend: "+2.4%",
-            trendSub: "efficiency gain",
-            icon: CircleCheck,
-            color: "#4ecdc4",
-        },
-        {
-            label: "RESOURCE UTILIZATION %",
-            value: "94.2%",
-            trend: "",
-            trendSub: "",
-            icon: Zap,
-            color: "#654dcf",
-            isProgress: true,
-        },
-        {
-            label: "ACTIVE BOTTLENECKS",
-            value: "04",
-            trend: "+1",
-            trendSub: "needs attention",
-            icon: TriangleAlert,
-            color: "#f39c12",
-        },
-    ];
+    let currentFilter: "REAL-TIME" | "WEEKLY" | "MONTHLY" = $state("REAL-TIME");
 
-    const bottlenecks = [
-        {
-            name: "Zeta Plate #09",
-            type: "Material Delay",
-            severity: "CRITICAL",
-            stage: "CNC Milling",
-            owner: "Marcus Chen",
-            time: "8 Days",
-            action: "Escalate",
+    const operationsData = {
+        "REAL-TIME": {
+            stats: [
+                { label: "TOTAL ACTIVE PROJECTS", value: "42", trend: "+2", trendSub: "since morning", icon: LayoutGrid, color: "#654dcf" },
+                { label: "ON-TRACK MILESTONES", value: "89%", trend: "+2.4%", trendSub: "efficiency gain", icon: CircleCheck, color: "#4ecdc4" },
+                { label: "RESOURCE UTILIZATION %", value: "94.2%", trend: "", trendSub: "", icon: Zap, color: "#654dcf", isProgress: true },
+                { label: "ACTIVE BOTTLENECKS", value: "04", trend: "+1", trendSub: "needs attention", icon: TriangleAlert, color: "#f39c12" },
+            ],
+            chartPath: "M0,250 L200,200 L400,160 L600,120 L800,80 L1000,50",
+            chartArea: "M0,250 L200,200 L400,160 L600,120 L800,80 L1000,50 L1000,300 L0,300",
+            bottlenecks: [
+                { name: "Zeta Plate #09", type: "Material Delay", severity: "CRITICAL", stage: "CNC Milling", owner: "Marcus Chen", time: "8 Days", action: "Escalate" },
+                { name: "Gamma Flow Unit", type: "Resource Conflict", severity: "MEDIUM", stage: "Mold Assembly", owner: "Sarah Jenkins", time: "2 Days", action: "View Resolution" },
+                { name: "Delta Shield V2", type: "Pending Approval", severity: "LOW", stage: "Design Sign-off", owner: "James Wilson", time: "14 Hours", action: "View Resolution" },
+            ]
         },
-        {
-            name: "Gamma Flow Unit",
-            type: "Resource Conflict",
-            severity: "MEDIUM",
-            stage: "Mold Assembly",
-            owner: "Sarah Jenkins",
-            time: "2 Days",
-            action: "View Resolution",
+        "WEEKLY": {
+            stats: [
+                { label: "TOTAL ACTIVE PROJECTS", value: "38", trend: "+5", trendSub: "vs last week", icon: LayoutGrid, color: "#654dcf" },
+                { label: "ON-TRACK MILESTONES", value: "82%", trend: "-3%", trendSub: "slight delay", icon: CircleCheck, color: "#f39c12" },
+                { label: "RESOURCE UTILIZATION %", value: "88.5%", trend: "", trendSub: "", icon: Zap, color: "#654dcf", isProgress: true },
+                { label: "ACTIVE BOTTLENECKS", value: "07", trend: "+2", trendSub: "above average", icon: TriangleAlert, color: "#e74c3c" },
+            ],
+            chartPath: "M0,200 L200,220 L400,180 L600,210 L800,140 L1000,100",
+            chartArea: "M0,200 L200,220 L400,180 L600,210 L800,140 L1000,100 L1000,300 L0,300",
+            bottlenecks: [
+                { name: "Alpha Core X", type: "QC Failure", severity: "CRITICAL", stage: "Validation", owner: "Robert Fox", time: "3 Days", action: "Escalate" },
+                { name: "Sigma Rail #4", type: "Tooling Wear", severity: "LOW", stage: "CNC Roughing", owner: "Jane Doe", time: "5 Days", action: "View Resolution" },
+            ]
         },
-        {
-            name: "Delta Shield V2",
-            type: "Pending Approval",
-            severity: "LOW",
-            stage: "Design Sign-off",
-            owner: "James Wilson",
-            time: "14 Hours",
-            action: "View Resolution",
-        },
-    ];
+        "MONTHLY": {
+            stats: [
+                { label: "TOTAL ACTIVE PROJECTS", value: "112", trend: "+12%", trendSub: "vs last month", icon: LayoutGrid, color: "#654dcf" },
+                { label: "ON-TRACK MILESTONES", value: "91%", trend: "+5%", trendSub: "record efficiency", icon: CircleCheck, color: "#4ecdc4" },
+                { label: "RESOURCE UTILIZATION %", value: "82.1%", trend: "", trendSub: "", icon: Zap, color: "#654dcf", isProgress: true },
+                { label: "ACTIVE BOTTLENECKS", value: "12", trend: "-4", trendSub: "improving", icon: TriangleAlert, color: "#4ecdc4" },
+            ],
+            chartPath: "M0,280 L200,240 L400,200 L600,150 L800,100 L1000,80",
+            chartArea: "M0,280 L200,240 L400,200 L600,150 L800,100 L1000,80 L1000,300 L0,300",
+            bottlenecks: [
+                { name: "Batch #A7", type: "Multiple Issues", severity: "MEDIUM", stage: "Production", owner: "Team Alpha", time: "12 Days", action: "View Resolution" },
+            ]
+        }
+    };
+
+    const currentStats = $derived(operationsData[currentFilter].stats);
+    const currentBottlenecks = $derived(operationsData[currentFilter].bottlenecks);
+    const currentPath = $derived(operationsData[currentFilter].chartPath);
+    const currentArea = $derived(operationsData[currentFilter].chartArea);
 
     const resources = [
         { name: "Alpha Mould #202", hours: "1,240 hrs", percent: 85 },
@@ -103,16 +90,25 @@
         <p>Real-time oversight for TechMould tooling and production cycles.</p>
     </div>
     <div class="time-filters">
-        <button class="filter-btn active">REAL TIME</button>
-        <button class="filter-btn">WEEKLY</button>
-        <button class="filter-btn">MONTHLY</button>
+        <button 
+            class="filter-btn {currentFilter === 'REAL-TIME' ? 'active' : ''}" 
+            onclick={() => (currentFilter = 'REAL-TIME')}
+        >REAL TIME</button>
+        <button 
+            class="filter-btn {currentFilter === 'WEEKLY' ? 'active' : ''}" 
+            onclick={() => (currentFilter = 'WEEKLY')}
+        >WEEKLY</button>
+        <button 
+            class="filter-btn {currentFilter === 'MONTHLY' ? 'active' : ''}" 
+            onclick={() => (currentFilter = 'MONTHLY')}
+        >MONTHLY</button>
     </div>
 </div>
 
 <!-- Stats Grid -->
 <div class="stats-grid">
-    {#each stats as stat}
-        <div class="stat-card">
+    {#each currentStats as stat}
+        <div class="stat-card" transition:fade={{ duration: 200 }}>
             <div class="stat-header">
                 <span class="stat-label">{stat.label}</span>
                 <stat.icon size={18} style="color: {stat.color}" />
@@ -130,9 +126,7 @@
                     </div>
                 {:else}
                     <span
-                        class="stat-trend {stat.trend.includes('+')
-                            ? 'up'
-                            : ''}"
+                        class="stat-trend {stat.trend.includes('+') ? 'up' : ''}"
                     >
                         {stat.trend}
                     </span>
@@ -177,16 +171,18 @@
 
                     <!-- Path for Milestones -->
                     <path
-                        d="M0,250 L200,200 L400,160 L600,120 L800,80 L1000,50"
+                        d={currentPath}
                         fill="none"
                         stroke="#654dcf"
                         stroke-width="3"
+                        class="trend-path"
                     />
                     <!-- Area/Glow for path -->
                     <path
-                        d="M0,250 L200,200 L400,160 L600,120 L800,80 L1000,50 L1000,300 L0,300"
+                        d={currentArea}
                         fill="url(#grad-purple)"
                         style="opacity: 0.1"
+                        class="trend-area"
                     />
 
                     <!-- Path for Budget -->
@@ -302,8 +298,8 @@
                 </tr>
             </thead>
             <tbody>
-                {#each bottlenecks as b}
-                    <tr>
+                {#each currentBottlenecks as b}
+                    <tr transition:fade={{ duration: 200 }}>
                         <td class="bold">{b.name}</td>
                         <td>{b.type}</td>
                         <td>
@@ -465,6 +461,13 @@
         padding: 24px;
         border-radius: 12px;
         border: 1px solid rgba(0, 0, 0, 0.03);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+        border-color: var(--primary-light);
     }
 
     .stat-header {
@@ -607,6 +610,10 @@
         width: 100%;
         height: 100%;
         overflow: visible;
+    }
+
+    .trend-path, .trend-area {
+        transition: d 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* Donut Chart */

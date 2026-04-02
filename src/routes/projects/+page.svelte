@@ -7,86 +7,45 @@
         ChevronLeft,
         ChevronRight,
         ArrowUpRight,
+        Plus,
     } from "lucide-svelte";
+    import { fade, slide } from "svelte/transition";
+    import CreateProjectModal from "$lib/components/CreateProjectModal.svelte";
+
+    let showCreateProjectModal = $state(false);
+    let searchQuery = $state("");
+    let statusFilter = $state("All Status");
+    let categoryFilter = $state("All Categories");
 
     const stats = [
-        {
-            label: "TOTAL BUDGET",
-            value: "$4.2M",
-            trend: "↑ 12%",
-            trendColor: "#4ecdc4",
-        },
-        {
-            label: "HEALTHY PROJECTS",
-            value: "28",
-            sub: "/ 32",
-            trend: "",
-            color: "#1a1a1a",
-        },
-        {
-            label: "AT RISK",
-            value: "3",
-            trend: "Warning",
-            trendColor: "#f39c12",
-        },
-        {
-            label: "DELAYED",
-            value: "1",
-            trend: "Critical",
-            trendColor: "#e74c3c",
-        },
+        { label: "TOTAL BUDGET", value: "$4.2M", trend: "↑ 12%", trendColor: "#4ecdc4" },
+        { label: "HEALTHY PROJECTS", value: "28", sub: "/ 32", trend: "", color: "#1a1a1a" },
+        { label: "AT RISK", value: "3", trend: "Warning", trendColor: "#f39c12" },
+        { label: "DELAYED", value: "1", trend: "Critical", trendColor: "#e74c3c" },
     ];
 
-    const projects = [
-        {
-            name: "Precision Mold-X Case",
-            id: "#PX-400",
-            client: "Tesla Giga Lab",
-            status: "HEALTHY",
-            start: "Oct 12, 2023",
-            due: "Dec 15, 2023",
-            budget: "$245,000",
-            progress: 75,
-            color: "#654dcf",
-            team: ["/admin-face.jpg", "/admin-face.jpg"], // Placeholders
-        },
-        {
-            name: "Aluminum Housing V2",
-            id: "#PX-389",
-            client: "SpaceX",
-            status: "AT RISK",
-            start: "Sep 01, 2023",
-            due: "Nov 20, 2023",
-            budget: "$1.2M",
-            progress: 42,
-            color: "#f39c12",
-            team: ["/admin-face.jpg", "/admin-face.jpg", "+2"],
-        },
-        {
-            name: "Bio-Med Valve Prototypes",
-            id: "#PX-312",
-            client: "Medtronic",
-            status: "DELAYED",
-            start: "Aug 15, 2023",
-            due: "Oct 30, 2023",
-            budget: "$89,000",
-            progress: 15,
-            color: "#e74c3c",
-            team: ["/admin-face.jpg"],
-        },
-        {
-            name: "Turbo Fan Assemblies",
-            id: "#PX-412",
-            client: "Rolls-Royce",
-            status: "HEALTHY",
-            start: "Nov 01, 2023",
-            due: "Feb 28, 2024",
-            budget: "$560,000",
-            progress: 5,
-            color: "#654dcf",
-            team: ["/admin-face.jpg", "/admin-face.jpg"],
-        },
+    const allProjects = [
+        { name: "Precision Mold-X Case", id: "#PX-400", category: "Manufacturing", client: "Tesla Giga Lab", status: "HEALTHY", start: "Oct 12, 2023", due: "Dec 15, 2023", budget: "$245,000", progress: 75, color: "#654dcf", team: ["/admin-face.jpg", "/admin-face.jpg"] },
+        { name: "Aluminum Housing V2", id: "#PX-389", category: "PDC Tools", client: "SpaceX", status: "AT RISK", start: "Sep 01, 2023", due: "Nov 20, 2023", budget: "$1.2M", progress: 42, color: "#f39c12", team: ["/admin-face.jpg", "/admin-face.jpg", "+2"] },
+        { name: "Bio-Med Valve Prototypes", id: "#PX-312", category: "R&D", client: "Medtronic", status: "DELAYED", start: "Aug 15, 2023", due: "Oct 30, 2023", budget: "$89,000", progress: 15, color: "#e74c3c", team: ["/admin-face.jpg"] },
+        { name: "Turbo Fan Assemblies", id: "#PX-412", category: "Manufacturing", client: "Rolls-Royce", status: "HEALTHY", start: "Nov 01, 2023", due: "Feb 28, 2024", budget: "$560,000", progress: 5, color: "#654dcf", team: ["/admin-face.jpg", "/admin-face.jpg"] },
+        { name: "PDC Casting Block", id: "#PX-425", category: "PDC Casting Components", client: "Ford Motors", status: "HEALTHY", start: "Nov 15, 2023", due: "Jan 10, 2024", budget: "$120,000", progress: 30, color: "#654dcf", team: ["/admin-face.jpg"] },
     ];
+
+    const filteredProjects = $derived(
+        allProjects.filter((p) => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 p.client.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesStatus = statusFilter === "All Status" || p.status === statusFilter.toUpperCase();
+            const matchesCategory = categoryFilter === "All Categories" || p.category === categoryFilter;
+            
+            return matchesSearch && matchesStatus && matchesCategory;
+        })
+    );
+
+    const statusOptions = ["All Status", "Healthy", "At Risk", "Delayed"];
+    const categoryOptions = ["All Categories", "Manufacturing", "R&D", "PDC Tools", "PDC Casting Components"];
 </script>
 
 <svelte:head>
@@ -97,29 +56,39 @@
     <!-- Header -->
     <div class="page-header">
         <div class="header-left">
-            <h1>Projects <span class="badge">32 ACTIVE</span></h1>
+            <h1>Projects <span class="badge">{filteredProjects.length} ACTIVE</span></h1>
             <p>Manage and track your ongoing manufacturing projects.</p>
         </div>
-        <div class="header-filters">
-            <div class="filter-group">
-                <div class="filter-item">
-                    <Calendar size={14} />
-                    <span>Last 30 Days</span>
-                    <ChevronDown size={14} />
-                </div>
-                <div class="divider"></div>
-                <div class="filter-item">
-                    <span class="label">STATUS</span>
-                    <span>All Status</span>
-                    <ChevronDown size={14} />
-                </div>
-                <div class="divider"></div>
-                <div class="filter-item">
-                    <span class="label">CATEGORY</span>
-                    <span>All Categories</span>
-                    <ChevronDown size={14} />
+        <div class="header-actions-row">
+            <div class="search-box">
+                <Search size={16} />
+                <input type="text" placeholder="Search projects..." bind:value={searchQuery} />
+            </div>
+            <div class="header-filters">
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <span class="label">STATUS</span>
+                        <select bind:value={statusFilter}>
+                            {#each statusOptions as opt}
+                                <option value={opt}>{opt}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="filter-item">
+                        <span class="label">CATEGORY</span>
+                        <select bind:value={categoryFilter}>
+                            {#each categoryOptions as opt}
+                                <option value={opt}>{opt}</option>
+                            {/each}
+                        </select>
+                    </div>
                 </div>
             </div>
+            <button class="btn-new-project" onclick={() => (showCreateProjectModal = true)}>
+                <Plus size={16} />
+                <span>New Project</span>
+            </button>
         </div>
     </div>
 
@@ -159,8 +128,8 @@
                 </tr>
             </thead>
             <tbody>
-                {#each projects as p}
-                    <tr>
+                {#each filteredProjects as p (p.id)}
+                    <tr transition:fade={{ duration: 200 }}>
                         <td>
                             <div class="project-cell">
                                 <a href="/projects/PX-400" class="project-name"
@@ -216,7 +185,7 @@
                             </div>
                         </td>
                         <td>
-                            <button class="action-btn">
+                            <button class="action-btn" aria-label="Project actions">
                                 <div class="circle-dots"></div>
                             </button>
                         </td>
@@ -237,6 +206,7 @@
             <button class="arrow-btn"><ChevronRight size={16} /></button>
         </div>
     </div>
+    <CreateProjectModal bind:show={showCreateProjectModal} />
 </div>
 
 <style>
@@ -275,6 +245,54 @@
         margin-top: 4px;
     }
 
+    .header-actions-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        border: 1px solid var(--border);
+        padding: 8px 16px;
+        border-radius: 10px;
+        width: 300px;
+        transition: all 0.3s;
+    }
+
+    .search-box:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(101, 77, 207, 0.1);
+    }
+
+    .search-box input {
+        border: none;
+        outline: none;
+        font-size: 13px;
+        width: 100%;
+        font-family: inherit;
+    }
+
+    .search-box :global(svg) {
+        color: #a0aec0;
+    }
+
+    .btn-new-project {
+        background: var(--primary);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(101, 77, 207, 0.2);
+    }
+
     /* Filters */
     .header-filters {
         background: white;
@@ -293,17 +311,28 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
-        cursor: pointer;
+        padding: 4px 12px;
         font-size: 13px;
         font-weight: 600;
         color: var(--text-main);
     }
 
+    .filter-item select {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-main);
+        cursor: pointer;
+    }
+
     .filter-item .label {
         color: #a0aec0;
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
     }
 
     .divider {
@@ -387,6 +416,15 @@
         padding: 20px 24px;
         font-size: 13px;
         border-bottom: 1px solid var(--border);
+        transition: background 0.2s;
+    }
+
+    tr:hover td {
+        background: #fcfdfe;
+    }
+
+    tr:hover .project-name {
+        color: var(--primary);
     }
 
     .project-cell {
