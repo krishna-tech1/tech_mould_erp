@@ -281,7 +281,7 @@
         box-shadow: none;
     }
 
-    .spinner {
+    :global(.spinner) {
         animation: spin 1s linear infinite;
     }
 

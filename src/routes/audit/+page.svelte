@@ -256,7 +256,7 @@
                                                     color="#e53e3e"
                                                 />
                                                 <p>
-                                                    {@html log.summaryText.replace(
+                                                    {@html (log.summaryText || "").replace(
                                                         "Financial Data",
                                                         "<strong>Financial Data</strong>",
                                                     )}
@@ -389,7 +389,7 @@
         font-weight: 500;
     }
 
-    .s-icon {
+    :global(.s-icon) {
         color: #a0aec0;
     }
 
@@ -565,7 +565,7 @@
         padding: 2px 6px;
         border-radius: 4px;
     }
-    .diff-arrow {
+    :global(.diff-arrow) {
         color: #a0aec0;
     }
 

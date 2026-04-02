@@ -327,7 +327,7 @@
         cursor: not-allowed;
     }
 
-    .spinner {
+    :global(.spinner) {
         animation: spin 1s linear infinite;
     }
 

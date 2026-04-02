@@ -239,7 +239,7 @@
 
     /* Large Card Sidebar */
     .p-sidebar { width: 280px; background: #fbfbfc; border-left: 1px solid #f1f5f9; padding: 40px; display: flex; flex-direction: column; gap: 40px; }
-    .s-block label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 16px; }
+    .s-block .s-label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 16px; }
     .s-val { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 800; color: #1e293b; }
     .s-team { display: flex; align-items: center; }
 

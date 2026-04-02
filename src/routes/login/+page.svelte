@@ -2,7 +2,7 @@
     import type { PageProps } from "./$types";
     import { enhance } from "$app/forms";
     import logo from "$lib/assets/logo.png";
-    import { auth } from "$lib/auth.svelte.ts";
+    import { auth } from "$lib/auth.svelte";
 
     import {
         Mail,
@@ -16,6 +16,7 @@
         EyeOff,
         ShieldCheck
     } from "lucide-svelte";
+    import { fade } from "svelte/transition";
 
     let { form }: PageProps = $props();
     let activeRole = $state("admin");
@@ -83,7 +84,7 @@
                     src={logo}
                     alt="TechMould Logo"
                     class="form-logo"
-                    onerror={(e) => (e.target.style.display = "none")}
+                    onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
                 />
 
                 <div class="form-header">
@@ -196,7 +197,7 @@
 
                 {#if activeRole === "client"}
                     <div class="client-note">
-                        <p>New client? <a href="#">Request portal access</a></p>
+                        <p>New client? <a href="/request-access">Request portal access</a></p>
                     </div>
                 {/if}
             </div>

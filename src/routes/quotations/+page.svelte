@@ -63,8 +63,8 @@
                         <span class="q-id">{q.id}</span>
                         <h3>{q.name}</h3>
                         <div class="card-meta">
-                            <div class="meta-item"><label>AMOUNT</label><span>{q.amount}</span></div>
-                            <div class="meta-item"><label>DATE ISSUED</label><span>{q.date}</span></div>
+                            <div class="meta-item"><span class="label">AMOUNT</span><span>{q.amount}</span></div>
+                            <div class="meta-item"><span class="label">DATE ISSUED</span><span>{q.date}</span></div>
                         </div>
                     </div>
                     <div class="card-right">
@@ -80,7 +80,7 @@
             <div class="summary-card card-premium" in:fly={{ x: 20 }}>
                 <div class="summary-header">
                     <div class="s-head-icon"><FileText size={18} color="#654dcf" /></div>
-                    <label>QUOTATION DETAIL</label>
+                    <span class="label">QUOTATION DETAIL</span>
                 </div>
 
                 <div class="summary-info">
@@ -151,7 +151,7 @@
     .card-left .q-id { font-size: 11px; font-weight: 800; color: #654dcf; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
     .card-left h3 { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 24px; }
     .card-meta { display: flex; gap: 32px; }
-    .meta-item label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; margin-bottom: 6px; }
+    .meta-item .label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; margin-bottom: 6px; }
     .meta-item span { font-size: 15px; font-weight: 800; color: #1e293b; }
 
     .card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; }
@@ -166,7 +166,7 @@
     .summary-card { background: white; border: 1px solid #f1f5f9; border-radius: 32px; padding: 48px; box-shadow: 0 40px 100px rgba(0,0,0,0.03); }
     .summary-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
     .s-head-icon { width: 36px; height: 36px; background: #f5f3ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .summary-header label { font-size: 11px; font-weight: 800; color: #654dcf; letter-spacing: 1.5px; }
+    .summary-header .label { font-size: 11px; font-weight: 800; color: #654dcf; letter-spacing: 1.5px; }
 
     .summary-info h2 { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
     .project-hint { font-size: 13px; font-weight: 600; color: #64748b; display: block; margin-bottom: 48px; }

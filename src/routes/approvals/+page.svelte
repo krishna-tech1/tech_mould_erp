@@ -93,8 +93,8 @@
                         </div>
 
                         <div class="input-field">
-                            <label>Internal Comment</label>
-                            <input type="text" placeholder="Add optional note..." bind:value={q.note} />
+                            <label for="q-note-{q.id}">Internal Comment</label>
+                            <input id="q-note-{q.id}" type="text" placeholder="Add optional note..." bind:value={q.note} />
                         </div>
 
                         <div class="card-actions">
@@ -130,8 +130,8 @@
                             </div>
 
                             <div class="input-field">
-                                <label>Review Feedback</label>
-                                <textarea placeholder="Describe changes needed or praise..." bind:value={d.feedback}></textarea>
+                                <label for="d-feedback-{d.id}">Review Feedback</label>
+                                <textarea id="d-feedback-{d.id}" placeholder="Describe changes needed or praise..." bind:value={d.feedback}></textarea>
                             </div>
 
                             <div class="card-actions">
@@ -167,8 +167,8 @@
                         </div>
 
                         <div class="input-field">
-                            <label>Override Authorization</label>
-                            <input type="text" placeholder="Manager ID or Comment..." bind:value={t.auth} />
+                            <label for="t-auth-{t.project.replace(/\s+/g, '-')}-auth">Override Authorization</label>
+                            <input id="t-auth-{t.project.replace(/\s+/g, '-')}-auth" type="text" placeholder="Manager ID or Comment..." bind:value={t.auth} />
                         </div>
 
                         <div class="card-actions">

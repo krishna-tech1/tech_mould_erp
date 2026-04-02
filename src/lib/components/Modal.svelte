@@ -23,12 +23,16 @@
         class="modal-backdrop" 
         onmousedown={close} 
         transition:fade={{ duration: 200 }}
+        role="presentation"
     >
         <!-- Modal Content -->
         <div 
             class="modal-container" 
             onmousedown={(e) => e.stopPropagation()}
             transition:scale={{ duration: 300, start: 0.95, opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            tabindex="-1"
         >
             <div class="modal-header">
                 <h2>{title}</h2>

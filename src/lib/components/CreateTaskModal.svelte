@@ -130,7 +130,7 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Priority Level</label>
+                        <span class="label-text">Priority Level</span>
                         <div class="priority-selector">
                             {#each priorities as p}
                                 <button 
@@ -199,7 +199,8 @@
         gap: 8px;
     }
 
-    .input-group label {
+    .input-group label, 
+    .label-text {
         font-size: 11px;
         font-weight: 700;
         color: var(--text-sub);
@@ -301,7 +302,7 @@
         cursor: not-allowed;
     }
 
-    .spinner {
+    :global(.spinner) {
         animation: spin 1s linear infinite;
     }
 
