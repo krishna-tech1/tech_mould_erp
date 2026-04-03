@@ -242,10 +242,14 @@
                 {#if userRole === "client"}
                     <div class="nav-divider"></div>
                     <a href="/settings" class="nav-item"
-                        ><span class="icon"><Settings size={20} /></span>{#if !isCollapsed}<span class="name">Settings</span>{/if}</a
+                        ><span class="icon"><Settings size={20} /></span
+                        >{#if !isCollapsed}<span class="name">Settings</span
+                            >{/if}</a
                     >
                     <a href="/support" class="nav-item"
-                        ><span class="icon"><Headphones size={20} /></span>{#if !isCollapsed}<span class="name">Support</span>{/if}</a
+                        ><span class="icon"><Headphones size={20} /></span
+                        >{#if !isCollapsed}<span class="name">Support</span
+                            >{/if}</a
                     >
                 {/if}
             </nav>

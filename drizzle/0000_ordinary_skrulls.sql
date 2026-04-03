@@ -1,5 +1,0 @@
-CREATE TABLE "users" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"email" text NOT NULL,
-	"password_hash" text NOT NULL
-);

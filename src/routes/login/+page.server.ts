@@ -1,57 +1,79 @@
+import bcrypt from "bcrypt";
+import crypto from "node:crypto";
+import { db } from "$lib/server/db";
+import { users, sessions } from "$lib/server/schema";
+import { eq } from "drizzle-orm";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions } from "./$types";
+
+const SESSION_DAYS = 7;
+
+function createSessionToken() {
+    return crypto.randomBytes(24).toString("hex");
+}
+
+function getSessionExpiry() {
+    const d = new Date();
+    d.setDate(d.getDate() + SESSION_DAYS);
+    return d;
+}
 
 export const actions: Actions = {
     login: async ({ request, cookies }) => {
         const data = await request.formData();
-        const email = data.get("email") as string;
-        const password = data.get("password") as string;
-        const role = data.get("role") as string;
+        const email = String(data.get("email") ?? "")
+            .trim()
+            .toLowerCase();
+        const password = String(data.get("password") ?? "");
 
-        // Expanded Tiered Credential System
-        const validCredentials = [
-            {
-                email: "admin@techmould.com",
-                password: "admin",
-                role: "admin"
-            },
-            {
-                email: "management@techmould.com",
-                password: "manager123",
-                role: "management"
-            },
-            {
-                email: "employee@techmould.com",
-                password: "emp",
-                role: "employee"
-            },
-            {
-                email: "client@techmould.com",
-                password: "client",
-                role: "client"
-            }
-        ];
-
-        // Find match across email, password, and specific portal selection
-        const userFound = validCredentials.find(
-            u => u.email === email && u.password === password && u.role === role
-        );
-
-        if (userFound) {
-            // Set session cookie
-            cookies.set("session", "authenticated_session_token", {
-                path: "/",
-                httpOnly: true,
-                sameSite: "strict",
-                secure: import.meta.env.PROD,
-            });
-            
-            throw redirect(303, "/");
-        } else {
-            return fail(401, {
+        /* 
+        --- Disabled Temporarily ---
+        if (!email || !password) {
+            return fail(400, {
                 email,
-                error: "Authentication failed. Please verify your portal selection and credentials."
+                error: "Email and password are required",
             });
         }
+
+        const [user] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
+        if (!user) return fail(401, { email, error: "Invalid credentials" });
+
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return fail(401, { email, error: "Invalid credentials" });
+
+        const token = createSessionToken();
+        const expiresAt = getSessionExpiry();
+
+        await db.insert(sessions).values({
+            token,
+            userId: user.id,
+            expiresAt,
+        });
+
+        cookies.set("session", token, {
+            path: "/",
+            httpOnly: true,
+            sameSite: "strict",
+            secure: true,
+            expires: expiresAt,
+        });
+        */
+
+        throw redirect(303, "/");
+    },
+
+    logout: async ({ cookies }) => {
+        const token = cookies.get("session");
+
+        if (token) {
+            await db.delete(sessions).where(eq(sessions.token, token));
+        }
+
+        cookies.delete("session", { path: "/" });
+        throw redirect(303, "/login");
     },
 };
