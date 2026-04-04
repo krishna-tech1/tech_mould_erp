@@ -1,16 +1,16 @@
 <script lang="ts">
-    import { 
-        CheckCircle2, 
-        XCircle, 
-        Clock, 
-        FileText, 
-        Palette, 
-        ArrowRightLeft, 
+    import {
+        CircleCheck,
+        XCircle,
+        Clock,
+        FileText,
+        Palette,
+        ArrowRightLeft,
         TrendingUp,
         AlertCircle,
         User,
         MessageSquare,
-        MoreVertical
+        MoreVertical,
     } from "lucide-svelte";
     import { fade, fly, slide } from "svelte/transition";
 
@@ -20,15 +20,15 @@
             client: "Global Logistics",
             amount: "$42,500.00",
             terms: "Standard Terms",
-            note: ""
+            note: "",
         },
         {
             id: "Q-8831",
             client: "TechFlow Systems",
             amount: "$112,000.00",
             terms: "Enterprise Tier",
-            note: ""
-        }
+            note: "",
+        },
     ]);
 
     let designs = $state([
@@ -37,8 +37,8 @@
             name: "Mould-V4 Refinement",
             designer: "Sarah K.",
             feedback: "",
-            image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400"
-        }
+            image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400",
+        },
     ]);
 
     let transitions = $state([
@@ -47,8 +47,8 @@
             from: "Prototyping",
             to: "Manufacturing",
             flag: "System flag: Inventory levels for high-grade resin are below threshold for this transition.",
-            auth: ""
-        }
+            auth: "",
+        },
     ]);
 </script>
 
@@ -61,7 +61,10 @@
     <div class="page-header">
         <div class="header-left">
             <h1>Approvals Hub</h1>
-            <p>Review and authorize pending business requests across all departments.</p>
+            <p>
+                Review and authorize pending business requests across all
+                departments.
+            </p>
         </div>
         <div class="header-right">
             <div class="summary-badge">
@@ -73,14 +76,13 @@
 
     <!-- Main Grid -->
     <div class="approvals-grid">
-        
         <!-- Quotations Column -->
         <div class="approval-column">
             <div class="column-header">
                 <h3>Quotations</h3>
                 <span class="count-pill">2 PENDING</span>
             </div>
-            
+
             <div class="cards-stack">
                 {#each quotations as q}
                     <div class="approval-card card" in:fly={{ y: 20 }}>
@@ -94,7 +96,12 @@
 
                         <div class="input-field">
                             <label for="q-note-{q.id}">Internal Comment</label>
-                            <input id="q-note-{q.id}" type="text" placeholder="Add optional note..." bind:value={q.note} />
+                            <input
+                                id="q-note-{q.id}"
+                                type="text"
+                                placeholder="Add optional note..."
+                                bind:value={q.note}
+                            />
                         </div>
 
                         <div class="card-actions">
@@ -115,14 +122,17 @@
 
             <div class="cards-stack">
                 {#each designs as d}
-                    <div class="approval-card card" in:fly={{ y: 20, delay: 100 }}>
+                    <div
+                        class="approval-card card"
+                        in:fly={{ y: 20, delay: 100 }}
+                    >
                         <div class="design-preview">
                             <img src={d.image} alt={d.name} />
                             <div class="preview-overlay">
                                 <Palette size={20} />
                             </div>
                         </div>
-                        
+
                         <div class="card-content">
                             <div class="d-title">
                                 <strong>{d.name}</strong>
@@ -130,8 +140,14 @@
                             </div>
 
                             <div class="input-field">
-                                <label for="d-feedback-{d.id}">Review Feedback</label>
-                                <textarea id="d-feedback-{d.id}" placeholder="Describe changes needed or praise..." bind:value={d.feedback}></textarea>
+                                <label for="d-feedback-{d.id}"
+                                    >Review Feedback</label
+                                >
+                                <textarea
+                                    id="d-feedback-{d.id}"
+                                    placeholder="Describe changes needed or praise..."
+                                    bind:value={d.feedback}
+                                ></textarea>
                             </div>
 
                             <div class="card-actions">
@@ -153,11 +169,18 @@
 
             <div class="cards-stack">
                 {#each transitions as t}
-                    <div class="transition-card card" in:fly={{ y: 20, delay: 200 }}>
+                    <div
+                        class="transition-card card"
+                        in:fly={{ y: 20, delay: 200 }}
+                    >
                         <div class="t-top">
                             <div class="t-title">
                                 <strong>Project: {t.project}</strong>
-                                <span class="path">{t.from} <ArrowRightLeft size={12} /> {t.to}</span>
+                                <span class="path"
+                                    >{t.from}
+                                    <ArrowRightLeft size={12} />
+                                    {t.to}</span
+                                >
                             </div>
                             <AlertCircle size={20} color="#f6ad55" />
                         </div>
@@ -167,8 +190,21 @@
                         </div>
 
                         <div class="input-field">
-                            <label for="t-auth-{t.project.replace(/\s+/g, '-')}-auth">Override Authorization</label>
-                            <input id="t-auth-{t.project.replace(/\s+/g, '-')}-auth" type="text" placeholder="Manager ID or Comment..." bind:value={t.auth} />
+                            <label
+                                for="t-auth-{t.project.replace(
+                                    /\s+/g,
+                                    '-',
+                                )}-auth">Override Authorization</label
+                            >
+                            <input
+                                id="t-auth-{t.project.replace(
+                                    /\s+/g,
+                                    '-',
+                                )}-auth"
+                                type="text"
+                                placeholder="Manager ID or Comment..."
+                                bind:value={t.auth}
+                            />
                         </div>
 
                         <div class="card-actions">
@@ -186,12 +222,15 @@
                     </div>
                     <div class="stat-body">
                         <span class="value">1.4 Days</span>
-                        <p>Average decision time this week, <strong>12% faster</strong> than last period.</p>
+                        <p>
+                            Average decision time this week, <strong
+                                >12% faster</strong
+                            > than last period.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -283,7 +322,9 @@
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s;
     }
 
     .card:hover {
@@ -330,7 +371,8 @@
         letter-spacing: 0.5px;
     }
 
-    .input-field input, .input-field textarea {
+    .input-field input,
+    .input-field textarea {
         background: #f4f7fa;
         border: 1px solid transparent;
         padding: 12px 16px;
@@ -347,7 +389,8 @@
         resize: vertical;
     }
 
-    .input-field input:focus, .input-field textarea:focus {
+    .input-field input:focus,
+    .input-field textarea:focus {
         background: white;
         border-color: var(--primary);
         box-shadow: 0 0 0 4px rgba(101, 77, 207, 0.1);
@@ -359,7 +402,10 @@
         gap: 12px;
     }
 
-    .btn-approve, .btn-reject, .btn-proceed, .btn-hold {
+    .btn-approve,
+    .btn-reject,
+    .btn-proceed,
+    .btn-hold {
         padding: 12px;
         border-radius: 10px;
         font-size: 13px;
@@ -367,22 +413,26 @@
         transition: all 0.2s;
     }
 
-    .btn-approve, .btn-proceed {
+    .btn-approve,
+    .btn-proceed {
         background: #009c5b;
         color: white;
     }
 
-    .btn-approve:hover, .btn-proceed:hover {
+    .btn-approve:hover,
+    .btn-proceed:hover {
         background: #00814b;
         box-shadow: 0 4px 12px rgba(0, 156, 91, 0.2);
     }
 
-    .btn-reject, .btn-hold {
+    .btn-reject,
+    .btn-hold {
         background: #ffe4e4;
         color: #e53e3e;
     }
 
-    .btn-reject:hover, .btn-hold:hover {
+    .btn-reject:hover,
+    .btn-hold:hover {
         background: #fed7d7;
     }
 

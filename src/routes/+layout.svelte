@@ -15,7 +15,7 @@
         MessageSquareText,
         ClipboardList,
         Database,
-        BarChart3,
+        ChartColumn,
         ShieldCheck,
         History,
         Menu,
@@ -26,7 +26,7 @@
         Plus,
         LogOut,
         CircleAlert,
-        CheckCircle2,
+        CircleCheck,
         FolderOpen,
         Headphones,
     } from "lucide-svelte";
@@ -37,7 +37,7 @@
         {
             name: "Approvals",
             role: "exec",
-            icon: CheckCircle2,
+            icon: CircleCheck,
             href: "/approvals",
         },
         {
@@ -83,7 +83,7 @@
             icon: Database,
             href: "/data",
         },
-        { name: "Reports", role: "exec", icon: BarChart3, href: "/reports" },
+        { name: "Reports", role: "exec", icon: ChartColumn, href: "/reports" },
         {
             name: "Role Management",
             role: "admin",
@@ -102,7 +102,7 @@
         {
             name: "Client Approvals",
             role: "client",
-            icon: CheckCircle2,
+            icon: CircleCheck,
             href: "/client-approvals",
         },
         {
@@ -148,7 +148,7 @@
                 { name: "My Project", icon: FolderOpen, href: "/my-projects" },
                 {
                     name: "Approvals",
-                    icon: CheckCircle2,
+                    icon: CircleCheck,
                     href: "/client-approvals",
                 },
                 { name: "Quotations", icon: Banknote, href: "/quotations" },
@@ -370,7 +370,10 @@
         </div>
     {/if}
 
-    <CreateProjectModal bind:show={showCreateProjectModal} onCreated={() => invalidateAll()} />
+    <CreateProjectModal
+        bind:show={showCreateProjectModal}
+        onCreated={() => invalidateAll()}
+    />
 {/if}
 
 <style>

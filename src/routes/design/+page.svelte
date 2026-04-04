@@ -10,7 +10,7 @@
         XCircle,
         ChevronRight,
         Search,
-        BarChart3,
+        ChartColumn,
         Box,
     } from "lucide-svelte";
 
@@ -164,7 +164,7 @@
 
             <div class="bottom-cols">
                 <div class="analysis-card">
-                    <div class="icon-box purple"><BarChart3 size={18} /></div>
+                    <div class="icon-box purple"><ChartColumn size={18} /></div>
                     <h3>Simulated Stress Profile</h3>
                     <p>
                         Latest FEA analysis shows 98.4% structural integrity

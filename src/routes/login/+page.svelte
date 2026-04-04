@@ -8,30 +8,18 @@
         Mail,
         Lock,
         ArrowRight,
-        Briefcase,
-        CircleUser,
-        Users,
         CircleCheck,
         Eye,
         EyeOff,
-        ShieldCheck
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
 
     let { form }: PageProps = $props();
-    let activeRole = $state("admin");
     let email = $state("");
     let password = $state("");
     let showPassword = $state(false);
     let isLoading = $state(false);
     let errorMessage = $state("");
-
-    const roles = [
-        { id: "admin", label: "Admin", icon: ShieldCheck },
-        { id: "management", label: "Management", icon: Briefcase },
-        { id: "employee", label: "Employees", icon: CircleUser },
-        { id: "client", label: "Clients", icon: Users },
-    ];
 </script>
 
 <svelte:head>
@@ -84,26 +72,14 @@
                     src={logo}
                     alt="TechMould Logo"
                     class="form-logo"
-                    onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                    onerror={(e) =>
+                        ((e.currentTarget as HTMLImageElement).style.display =
+                            "none")}
                 />
 
                 <div class="form-header">
-                    <h2>Welcome Back</h2>
-                    <p>Please select your portal and enter your credentials.</p>
-                </div>
-
-                <div class="role-tabs">
-                    {#each roles as role}
-                        <button
-                            class="role-tab {activeRole === role.id
-                                ? 'active'
-                                : ''}"
-                            onclick={() => (activeRole = role.id)}
-                        >
-                            <role.icon size={16} />
-                            <span>{role.label}</span>
-                        </button>
-                    {/each}
+                    <h2>Login Portal</h2>
+                    <p>Enter your credentials to access your account.</p>
                 </div>
 
                 <form
@@ -115,12 +91,19 @@
                         return async ({ result, update }) => {
                             isLoading = false;
                             if (result.type === "redirect") {
+                                // Determine role based on email since server-side detection is currently disabled
+                                const finalRole = email
+                                    .toLowerCase()
+                                    .includes("client")
+                                    ? "client"
+                                    : "admin";
+
                                 // Update secure storage and shared reactive state
                                 localStorage.setItem("isAuthenticated", "true");
-                                localStorage.setItem("userRole", activeRole);
+                                localStorage.setItem("userRole", finalRole);
                                 auth.isAuthenticated = true;
-                                auth.userRole = activeRole;
-                                
+                                auth.userRole = finalRole;
+
                                 // FORCE A FULL RELOAD to ensure all layouts properly re-render with the new role
                                 window.location.href = result.location;
                             } else {
@@ -191,15 +174,7 @@
                             <ArrowRight size={18} />
                         {/if}
                     </button>
-
-                    <input type="hidden" name="role" value={activeRole} />
                 </form>
-
-                {#if activeRole === "client"}
-                    <div class="client-note">
-                        <p>New client? <a href="/request-access">Request portal access</a></p>
-                    </div>
-                {/if}
             </div>
         </div>
     </div>
@@ -329,8 +304,19 @@
         z-index: 1;
     }
 
-    .orb-1 { width: 600px; height: 600px; top: -200px; right: -200px; }
-    .orb-2 { width: 400px; height: 400px; bottom: -100px; left: -150px; background: rgba(255,255,255,0.05); }
+    .orb-1 {
+        width: 600px;
+        height: 600px;
+        top: -200px;
+        right: -200px;
+    }
+    .orb-2 {
+        width: 400px;
+        height: 400px;
+        bottom: -100px;
+        left: -150px;
+        background: rgba(255, 255, 255, 0.05);
+    }
 
     .form-panel {
         flex: 1;
@@ -346,45 +332,31 @@
         padding: 48px;
         background: white;
         border-radius: 20px;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.05);
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.05);
         display: flex;
         flex-direction: column;
         align-items: center;
     }
 
-    .form-logo { height: 48px; margin-bottom: 24px; }
+    .form-logo {
+        height: 48px;
+        margin-bottom: 24px;
+    }
 
-    .form-header { text-align: center; margin-bottom: 32px; }
-    .form-header h2 { font-size: 28px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; }
-    .form-header p { font-size: 14px; color: #718096; }
-
-    .role-tabs {
-        display: flex;
-        width: 100%;
-        gap: 8px;
-        background: #f1f3f7;
-        padding: 6px;
-        border-radius: 12px;
+    .form-header {
+        text-align: center;
         margin-bottom: 32px;
     }
-
-    .role-tab {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        padding: 12px 0;
-        border-radius: 8px;
-        background: transparent;
-        color: #a0aec0;
-        font-size: 10px;
+    .form-header h2 {
+        font-size: 28px;
         font-weight: 800;
-        cursor: pointer;
-        transition: all 0.2s;
+        color: #1a1a1a;
+        margin-bottom: 8px;
     }
-
-    .role-tab.active { background: white; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .form-header p {
+        font-size: 14px;
+        color: #718096;
+    }
 
     .error-banner {
         background: #fff5f5;
@@ -399,13 +371,38 @@
         margin-bottom: 20px;
     }
 
-    .login-form { display: flex; width: 100%; flex-direction: column; gap: 20px; }
-    .input-group { display: flex; flex-direction: column; gap: 8px; }
-    label { font-size: 12px; font-weight: 800; color: #4a5568; }
+    .login-form {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    label {
+        font-size: 12px;
+        font-weight: 800;
+        color: #4a5568;
+    }
 
-    .input-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
-    .input-icon { position: absolute; left: 16px; color: #a0aec0; transition: color 0.2s; }
-    .input-wrapper:focus-within .input-icon { color: var(--primary); }
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    .input-icon {
+        position: absolute;
+        left: 16px;
+        color: #a0aec0;
+        transition: color 0.2s;
+    }
+    .input-wrapper:focus-within .input-icon {
+        color: var(--primary);
+    }
 
     input {
         width: 100%;
@@ -419,9 +416,19 @@
         box-sizing: border-box;
     }
 
-    input:focus { outline: none; border-color: var(--primary); background: white; }
+    input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: white;
+    }
 
-    .eye-btn { position: absolute; right: 16px; background: transparent; cursor: pointer; color: #a0aec0; }
+    .eye-btn {
+        position: absolute;
+        right: 16px;
+        background: transparent;
+        cursor: pointer;
+        color: #a0aec0;
+    }
 
     .btn-submit {
         display: flex;
@@ -440,10 +447,21 @@
         margin-top: 12px;
     }
 
-    .btn-submit:hover:not(:disabled) { background: #543eb3; transform: translateY(-1px); }
-    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .client-note { text-align: center; margin-top: 24px; font-size: 13px; color: #718096; }
-    .client-note a { color: var(--primary); text-decoration: none; font-weight: 700; }
+    .btn-submit:hover:not(:disabled) {
+        background: #543eb3;
+        transform: translateY(-1px);
+    }
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>

@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1775201867644,
-      "tag": "0000_sleepy_dragon_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1775223628154,
-      "tag": "0001_soft_molecule_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1775240000000,
-      "tag": "0002_fancy_project_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1775242000000,
-      "tag": "0003_dynamic_project_workflow",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1775243000000,
-      "tag": "0004_project_audit_logs",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1775244000000,
-      "tag": "0002_add_roles_system",
+      "when": 1775325394709,
+      "tag": "0000_dear_thena",
       "breakpoints": true
     }
   ]

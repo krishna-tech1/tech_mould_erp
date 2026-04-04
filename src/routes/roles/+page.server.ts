@@ -1,12 +1,21 @@
 import { db } from "$lib/server/db";
-import { roles, modules, permissions, rolePermissions, users, userRoles } from "$lib/server/schema";
+import {
+    roles,
+    modules,
+    permissions,
+    rolePermissions,
+    users,
+    userRoles,
+} from "$lib/server/schema";
 import { and, eq } from "drizzle-orm";
 import { fail } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
 
 function getDbErrorMessage(error: unknown): string {
     const msg = error instanceof Error ? error.message.toLowerCase() : "";
-    const errWithCause = error as { cause?: { code?: string; constraint_name?: string; detail?: string } };
+    const errWithCause = error as {
+        cause?: { code?: string; constraint_name?: string; detail?: string };
+    };
     const causeCode = errWithCause?.cause?.code;
     const constraint = errWithCause?.cause?.constraint_name;
 
@@ -14,7 +23,10 @@ function getDbErrorMessage(error: unknown): string {
         return "Role name already exists. Please choose a different role name.";
     }
 
-    if (msg.includes("password authentication failed") || msg.includes("28p01")) {
+    if (
+        msg.includes("password authentication failed") ||
+        msg.includes("28p01")
+    ) {
         return "Database authentication failed. Update DATABASE_URL credentials in your local environment.";
     }
     return "Database connection failed. Verify PostgreSQL is running and DATABASE_URL points to your local database.";
@@ -69,14 +81,18 @@ export const load: PageServerLoad = async () => {
             allModules.forEach((module: (typeof allModules)[number]) => {
                 permissionsMatrix[module.id] = [false, false, false];
 
-                adminPermissions.forEach((rp: (typeof adminPermissions)[number]) => {
-                    if (rp.moduleId === module.id) {
-                        const permIndex = permissionIndexById.get(rp.permissionId);
-                        if (permIndex !== undefined) {
-                            permissionsMatrix[module.id][permIndex] = true;
+                adminPermissions.forEach(
+                    (rp: (typeof adminPermissions)[number]) => {
+                        if (rp.moduleId === module.id) {
+                            const permIndex = permissionIndexById.get(
+                                rp.permissionId,
+                            );
+                            if (permIndex !== undefined) {
+                                permissionsMatrix[module.id][permIndex] = true;
+                            }
                         }
-                    }
-                });
+                    },
+                );
             });
         }
 
@@ -107,9 +123,8 @@ export const actions: Actions = {
     createRole: async ({ request }) => {
         const formData = await request.formData();
         const roleName = String(formData.get("roleName") ?? "").trim();
-        const loginSide = String(formData.get("loginSide") ?? "").trim();
 
-        if (!roleName || !loginSide) {
+        if (!roleName) {
             return fail(400, {
                 error: "Role name and portal assignment are required",
             });
@@ -122,7 +137,6 @@ export const actions: Actions = {
                 .values({
                     name: roleName,
                     description: `${roleName} role`,
-                    portal: loginSide.toLowerCase(),
                 })
                 .returning();
 
@@ -174,7 +188,9 @@ export const actions: Actions = {
 
                 rolePerms.forEach((rp: (typeof rolePerms)[number]) => {
                     if (rp.moduleId === module.id) {
-                        const permIndex = permissionIndexById.get(rp.permissionId);
+                        const permIndex = permissionIndexById.get(
+                            rp.permissionId,
+                        );
                         if (permIndex !== undefined) {
                             permissionsMatrix[module.id][permIndex] = true;
                         }
@@ -198,7 +214,9 @@ export const actions: Actions = {
         const formData = await request.formData();
         const roleId = parseInt(String(formData.get("roleId") ?? "0"));
         const moduleId = parseInt(String(formData.get("moduleId") ?? "0"));
-        const permissionId = parseInt(String(formData.get("permissionId") ?? "0"));
+        const permissionId = parseInt(
+            String(formData.get("permissionId") ?? "0"),
+        );
         const isChecked = formData.get("isChecked") === "true";
 
         if (!roleId || !moduleId || !permissionId) {
@@ -245,7 +263,8 @@ export const actions: Actions = {
             return fail(400, { error: "Invalid role ID" });
         }
 
-        let permissionPairs: Array<{ moduleId: number; permissionId: number }> = [];
+        let permissionPairs: Array<{ moduleId: number; permissionId: number }> =
+            [];
         try {
             const parsed = JSON.parse(permissionsJson) as unknown;
             if (!Array.isArray(parsed)) {
@@ -253,11 +272,21 @@ export const actions: Actions = {
             }
 
             permissionPairs = parsed
-                .filter((item): item is { moduleId: number; permissionId: number } => {
-                    if (!item || typeof item !== "object") return false;
-                    const candidate = item as { moduleId?: unknown; permissionId?: unknown };
-                    return Number.isInteger(candidate.moduleId) && Number.isInteger(candidate.permissionId);
-                })
+                .filter(
+                    (
+                        item,
+                    ): item is { moduleId: number; permissionId: number } => {
+                        if (!item || typeof item !== "object") return false;
+                        const candidate = item as {
+                            moduleId?: unknown;
+                            permissionId?: unknown;
+                        };
+                        return (
+                            Number.isInteger(candidate.moduleId) &&
+                            Number.isInteger(candidate.permissionId)
+                        );
+                    },
+                )
                 .map((item) => ({
                     moduleId: item.moduleId,
                     permissionId: item.permissionId,
@@ -268,7 +297,9 @@ export const actions: Actions = {
 
         try {
             await db.transaction(async (tx) => {
-                await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+                await tx
+                    .delete(rolePermissions)
+                    .where(eq(rolePermissions.roleId, roleId));
 
                 if (permissionPairs.length > 0) {
                     await tx

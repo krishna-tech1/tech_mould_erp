@@ -1,5 +1,5 @@
 {
-	"name": "my-app",
+	"name": "erp",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -9,7 +9,9 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"generate": "bunx drizzle-kit generate",
+		"migrate": "bunx drizzle-kit migrate"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",

@@ -2,15 +2,15 @@
     import Modal from "./Modal.svelte";
     import { enhance } from "$app/forms";
     import { invalidateAll } from "$app/navigation";
-    import { 
-        ShieldCheck, 
-        Briefcase, 
-        Settings, 
-        User, 
-        Check, 
-        Loader2,
+    import {
+        ShieldCheck,
+        Briefcase,
+        Settings,
+        User,
+        Check,
+        LoaderCircle,
         ShieldPlus,
-        Plus
+        Plus,
     } from "lucide-svelte";
     import { fade, scale } from "svelte/transition";
 
@@ -20,10 +20,8 @@
     let isSuccess = $state(false);
     let error = $state("");
 
-    let formData = $state({
-        loginSide: "Management",
-        roleName: ""
-    });
+    let roleName = $state("");
+    let roleType = $state("Employee");
 
     function handleSubmit() {
         error = "";
@@ -39,17 +37,17 @@
             </div>
             <h3>Role Protocol Defined!</h3>
             <p>
-                <strong>{formData.roleName}</strong> has been registered under the <strong>{formData.loginSide}</strong> portal.
+                <strong>{roleName}</strong> has been registered.
             </p>
         </div>
     {:else}
-        <form 
+        <form
             action="?/createRole"
             method="POST"
             use:enhance={() => {
                 handleSubmit();
                 return async ({ result }) => {
-                    if (result.type === 'success') {
+                    if (result.type === "success") {
                         await invalidateAll();
                         isSubmitting = false;
                         isSuccess = true;
@@ -58,26 +56,25 @@
                                 show = false;
                                 setTimeout(() => {
                                     isSuccess = false;
-                                    formData = {
-                                        loginSide: "Management",
-                                        roleName: ""
-                                    };
+                                    roleName = "";
                                     error = "";
                                 }, 300);
                             }
                         }, 2000);
-                    } else if (result.type === 'failure') {
+                    } else if (result.type === "failure") {
                         isSubmitting = false;
-                        error = typeof result.data?.error === 'string'
-                            ? result.data.error
-                            : 'Failed to create role';
+                        error =
+                            typeof result.data?.error === "string"
+                                ? result.data.error
+                                : "Failed to create role";
                     }
                 };
             }}
             class="role-form"
         >
             <p class="form-desc">
-                Define a new permission group to categorize system access for specific team departments.
+                Define a new permission group to categorize system access for
+                specific team departments.
             </p>
 
             {#if error}
@@ -87,24 +84,41 @@
             {/if}
 
             <div class="form-section">
-                <!-- Login Type Sector -->
                 <div class="input-group">
                     <label>
-                        <Settings size={14} /> Portal Assignment
+                        <Settings size={14} /> Type Assignment
                     </label>
                     <div class="radio-cards">
-                        <label class="radio-card {formData.loginSide === 'Management' ? 'active' : ''}">
-                            <input type="radio" name="loginSide" value="Management" bind:group={formData.loginSide} />
+                        <label
+                            class="radio-card {roleType === 'Admin'
+                                ? 'active'
+                                : ''}"
+                        >
+                            <input
+                                type="radio"
+                                name="roleType"
+                                value="Admin"
+                                bind:group={roleType}
+                            />
                             <div class="radio-content">
                                 <ShieldCheck size={20} />
                                 <div class="text">
-                                    <strong>Management</strong>
+                                    <strong>Admin</strong>
                                     <span>Full Admin Access</span>
                                 </div>
                             </div>
                         </label>
-                        <label class="radio-card {formData.loginSide === 'Employee' ? 'active' : ''}">
-                            <input type="radio" name="loginSide" value="Employee" bind:group={formData.loginSide} />
+                        <label
+                            class="radio-card {roleType === 'Employee'
+                                ? 'active'
+                                : ''}"
+                        >
+                            <input
+                                type="radio"
+                                name="roleType"
+                                value="Employee"
+                                bind:group={roleType}
+                            />
                             <div class="radio-content">
                                 <User size={20} />
                                 <div class="text">
@@ -121,23 +135,34 @@
                     <label for="roleName">
                         <Briefcase size={14} /> New Role Name
                     </label>
-                    <input 
-                        type="text" 
-                        id="roleName" 
+                    <input
+                        type="text"
+                        id="roleName"
                         name="roleName"
-                        bind:value={formData.roleName} 
+                        bind:value={roleName}
                         placeholder="e.g. Senior Logistics Coordinator"
-                        required 
+                        required
                     />
-                    <span class="hint">Ensure the role name is unique and descriptive.</span>
+                    <span class="hint"
+                        >Ensure the role name is unique and descriptive.</span
+                    >
                 </div>
             </div>
 
             <div class="form-actions">
-                <button type="button" class="btn-cancel" onclick={() => show = false} disabled={isSubmitting}>Cancel</button>
-                <button type="submit" class="btn-submit" disabled={isSubmitting || !formData.roleName}>
+                <button
+                    type="button"
+                    class="btn-cancel"
+                    onclick={() => (show = false)}
+                    disabled={isSubmitting}>Cancel</button
+                >
+                <button
+                    type="submit"
+                    class="btn-submit"
+                    disabled={isSubmitting || !roleName}
+                >
                     {#if isSubmitting}
-                        <Loader2 size={18} class="spinner" />
+                        <LoaderCircle size={18} class="spinner" />
                         Initializing...
                     {:else}
                         <Plus size={16} /> Create Role
@@ -270,7 +295,8 @@
         margin-top: 8px;
     }
 
-    .btn-cancel, .btn-submit {
+    .btn-cancel,
+    .btn-submit {
         padding: 12px 28px;
         border-radius: 10px;
         font-size: 13px;
@@ -308,8 +334,12 @@
     }
 
     @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     /* Success Screen */

@@ -27,12 +27,6 @@ export const actions: Actions = {
 
         /* 
         --- Disabled Temporarily ---
-        if (!email || !password) {
-            return fail(400, {
-                email,
-                error: "Email and password are required",
-            });
-        }
 
         const [user] = await db
             .select()

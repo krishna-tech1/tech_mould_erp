@@ -28,12 +28,10 @@ export const sessions = pgTable(
     (t) => [index("sessions_user_id_idx").on(t.userId)],
 );
 
-// Role Management Tables
 export const roles = pgTable("roles", {
     id: serial("id").primaryKey(),
     name: text("name").notNull().unique(),
     description: text("description"),
-    portal: text("portal").notNull(), // 'admin', 'management', 'client'
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -45,7 +43,7 @@ export const modules = pgTable("modules", {
 
 export const permissions = pgTable("permissions", {
     id: serial("id").primaryKey(),
-    name: text("name").notNull().unique(), // 'VIEW', 'EDIT', 'DELETE'
+    name: text("name").notNull().unique(),
 });
 
 export const rolePermissions = pgTable(
@@ -106,15 +104,12 @@ export const projects = pgTable(
     ],
 );
 
-export const projectDetails = pgTable(
-    "project_details",
-    {
-        projectId: integer("project_id")
-            .primaryKey()
-            .references(() => projects.id, { onDelete: "cascade" }),
-        description: text("description").notNull().default(""),
-    },
-);
+export const projectDetails = pgTable("project_details", {
+    projectId: integer("project_id")
+        .primaryKey()
+        .references(() => projects.id, { onDelete: "cascade" }),
+    description: text("description").notNull().default(""),
+});
 
 export const projectPhases = pgTable(
     "project_phases",
