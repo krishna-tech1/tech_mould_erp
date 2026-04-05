@@ -564,6 +564,28 @@
         -webkit-backdrop-filter: blur(20px);
     }
 
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        border-radius: 10px;
+        color: var(--text-base);
+        transition: all 0.2s ease;
+        margin-right: -8px;
+    }
+
+    .menu-btn:hover {
+        background: #f1f5f9;
+        color: var(--primary);
+    }
+
     .search-engine {
         background: #f1f5f9;
         border-radius: 14px;

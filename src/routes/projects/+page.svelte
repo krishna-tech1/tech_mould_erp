@@ -244,6 +244,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
     }
 
     .header-left h1 {
@@ -273,6 +275,7 @@
         display: flex;
         align-items: center;
         gap: 16px;
+        flex-wrap: wrap;
     }
 
     .search-box {
@@ -368,7 +371,7 @@
     /* Stats Grid */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 20px;
     }
 
@@ -417,7 +420,7 @@
         background: white;
         border-radius: 12px;
         border: 1px solid var(--border);
-        overflow: hidden;
+        overflow-x: auto;
     }
 
     table {
