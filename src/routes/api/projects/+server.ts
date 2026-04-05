@@ -70,6 +70,7 @@ export async function POST({ request }) {
                 .values({
                     code,
                     title,
+                    description,
                     clientName: client,
                     category,
                     priority,

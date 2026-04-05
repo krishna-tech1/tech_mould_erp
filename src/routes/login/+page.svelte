@@ -2,7 +2,6 @@
     import type { PageProps } from "./$types";
     import { enhance } from "$app/forms";
     import logo from "$lib/assets/logo.png";
-    import { auth } from "$lib/auth.svelte";
 
     import {
         Mail,
@@ -91,20 +90,7 @@
                         return async ({ result, update }) => {
                             isLoading = false;
                             if (result.type === "redirect") {
-                                // Determine role based on email since server-side detection is currently disabled
-                                const finalRole = email
-                                    .toLowerCase()
-                                    .includes("client")
-                                    ? "client"
-                                    : "admin";
-
-                                // Update secure storage and shared reactive state
-                                localStorage.setItem("isAuthenticated", "true");
-                                localStorage.setItem("userRole", finalRole);
-                                auth.isAuthenticated = true;
-                                auth.userRole = finalRole;
-
-                                // FORCE A FULL RELOAD to ensure all layouts properly re-render with the new role
+                                // Force full reload so server-side user data from cookie is reflected everywhere.
                                 window.location.href = result.location;
                             } else {
                                 await update();

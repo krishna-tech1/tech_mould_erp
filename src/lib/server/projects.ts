@@ -1,5 +1,5 @@
 import { db } from "$lib/server/db";
-import { projectAuditLogs, projectDetails, projectPhases, projects, projectTasks } from "$lib/server/schema";
+import { projectAuditLogs, projectPhases, projects, projectTasks } from "$lib/server/schema";
 import { asc, desc, eq } from "drizzle-orm";
 
 const PHASE_NAMES = ["QUOTATION", "DESIGN", "MANUFACTURING", "QUALITY CHECK", "DISPATCH"];
@@ -19,6 +19,7 @@ export type UiProject = {
 };
 
 export type ProjectDetail = {
+    projectId: number;
     code: string;
     title: string;
     clientName: string;
@@ -195,10 +196,8 @@ export async function getProjectsForUi(): Promise<UiProject[]> {
             dueDate: projects.dueDate,
             budgetUsd: projects.budgetUsd,
             progressPercent: projects.progressPercent,
-            description: projectDetails.description,
         })
         .from(projects)
-        .leftJoin(projectDetails, eq(projectDetails.projectId, projects.id))
         .orderBy(desc(projects.createdAt));
 
     const output: UiProject[] = [];
@@ -236,6 +235,7 @@ export async function getProjectDetailByCode(code: string): Promise<ProjectDetai
             id: projects.id,
             code: projects.code,
             title: projects.title,
+            description: projects.description,
             clientName: projects.clientName,
             category: projects.category,
             priority: projects.priority,
@@ -244,10 +244,8 @@ export async function getProjectDetailByCode(code: string): Promise<ProjectDetai
             progressPercent: projects.progressPercent,
             startDate: projects.startDate,
             dueDate: projects.dueDate,
-            description: projectDetails.description,
         })
         .from(projects)
-        .leftJoin(projectDetails, eq(projectDetails.projectId, projects.id))
         .where(eq(projects.code, code))
         .limit(1);
 
@@ -264,6 +262,7 @@ export async function getProjectDetailByCode(code: string): Promise<ProjectDetai
     });
 
     return {
+        projectId: row.id,
         code: row.code,
         title: row.title,
         clientName: row.clientName,
@@ -290,8 +289,7 @@ export async function getProjectWorkspaceByCode(code: string): Promise<{
     const phaseRows = await db
         .select({ name: projectPhases.name, status: projectPhases.status, position: projectPhases.position })
         .from(projectPhases)
-        .innerJoin(projects, eq(projects.id, projectPhases.projectId))
-        .where(eq(projects.code, code))
+        .where(eq(projectPhases.projectId, project.projectId))
         .orderBy(asc(projectPhases.position));
 
     const taskRows = await db
@@ -307,8 +305,7 @@ export async function getProjectWorkspaceByCode(code: string): Promise<{
             position: projectTasks.position,
         })
         .from(projectTasks)
-        .innerJoin(projects, eq(projects.id, projectTasks.projectId))
-        .where(eq(projects.code, code))
+        .where(eq(projectTasks.projectId, project.projectId))
         .orderBy(asc(projectTasks.position));
 
     const phases: ProjectPhase[] =
@@ -363,8 +360,7 @@ export async function getProjectWorkspaceByCode(code: string): Promise<{
             createdAt: projectAuditLogs.createdAt,
         })
         .from(projectAuditLogs)
-        .innerJoin(projects, eq(projects.id, projectAuditLogs.projectId))
-        .where(eq(projects.code, code))
+        .where(eq(projectAuditLogs.projectId, project.projectId))
         .orderBy(desc(projectAuditLogs.createdAt));
 
     const auditLogs: ProjectAuditEntry[] = logs.map((log) => ({

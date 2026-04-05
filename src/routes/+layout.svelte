@@ -1,7 +1,6 @@
 <script lang="ts">
     import "../app.css";
-    import { onMount } from "svelte";
-    import { goto, invalidateAll } from "$app/navigation";
+    import { invalidateAll } from "$app/navigation";
     import { page } from "$app/state";
     import { fade, scale, fly } from "svelte/transition";
     import { cubicOut } from "svelte/easing";
@@ -126,11 +125,12 @@
         { name: "History", role: "client", icon: History, href: "/history" },
     ];
 
-    let userRole = $state("");
+    let { data, children } = $props();
+    const userRole = $derived(String(data.user?.role ?? "").toLowerCase());
+    const userName = $derived(String(data.user?.name ?? "User"));
     let isCollapsed = $state(false);
     let showLogoutModal = $state(false);
     let showCreateProjectModal = $state(false);
-    let { children } = $props();
 
     const navItems = $derived.by(() => {
         if (!userRole) return [];
@@ -168,23 +168,12 @@
         isCollapsed = !isCollapsed;
     }
     function confirmLogout() {
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("userRole");
-        window.location.href = "/login";
+        window.location.href = "/logout";
     }
 
     const isLoginPage = $derived(
         page.url.pathname === "/login" || page.url.pathname === "/login/",
     );
-    let isCheckingAuth = $state(true);
-
-    onMount(() => {
-        const isAuth = localStorage.getItem("isAuthenticated") === "true";
-        userRole = localStorage.getItem("userRole") || "";
-        if (!isAuth && !isLoginPage) goto("/login");
-        else if (isAuth && isLoginPage) goto("/");
-        isCheckingAuth = false;
-    });
 </script>
 
 <svelte:head>
@@ -195,9 +184,7 @@
     >
 </svelte:head>
 
-{#if isCheckingAuth}
-    <div class="loading-state"><div class="spinner"></div></div>
-{:else if isLoginPage}
+{#if isLoginPage}
     {@render children()}
 {:else}
     <div class="layout" class:client-layout={userRole === "client"}>
@@ -320,9 +307,7 @@
                     <div class="user-block">
                         <div class="user-meta">
                             <span class="user-name"
-                                >{userRole === "client"
-                                    ? "Alex Rivera"
-                                    : "Admin Manager"}</span
+                                >{userName}</span
                             >
                             <span class="user-tier"
                                 >{userRole === "client"
@@ -769,27 +754,6 @@
         border-radius: 14px;
         font-weight: 700;
         font-size: 15px;
-    }
-
-    .loading-state {
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: white;
-    }
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f1f5f9;
-        border-top-color: var(--primary);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
     }
 
     /* Micro-Animations */

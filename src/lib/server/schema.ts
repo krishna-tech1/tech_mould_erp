@@ -88,6 +88,7 @@ export const projects = pgTable(
         id: serial("id").primaryKey(),
         code: text("code").notNull().unique(),
         title: text("title").notNull(),
+        description: text("description").notNull().default(""),
         clientName: text("client_name").notNull(),
         category: text("category").notNull(),
         priority: text("priority").notNull(),
@@ -100,6 +101,8 @@ export const projects = pgTable(
     },
     (t) => [
         index("projects_status_idx").on(t.status),
+        index("projects_category_idx").on(t.category),
+        index("projects_due_date_idx").on(t.dueDate),
         index("projects_created_at_idx").on(t.createdAt),
     ],
 );

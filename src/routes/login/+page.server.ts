@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
 import { db } from "$lib/server/db";
-import { sessions } from "$lib/server/schema";
+import { sessions, users } from "$lib/server/schema";
+import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
-import { redirect } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 import type { Actions } from "./$types";
 
 const SESSION_DAYS = 7;
@@ -25,9 +26,12 @@ export const actions: Actions = {
             .toLowerCase();
         const password = String(data.get("password") ?? "");
 
-        /* 
-        --- Disabled Temporarily ---
-
+        if (!email || !password) {
+            return fail(400, {
+                email,
+                error: "Email and password are required",
+            });
+        }
         const [user] = await db
             .select()
             .from(users)
@@ -51,10 +55,9 @@ export const actions: Actions = {
             path: "/",
             httpOnly: true,
             sameSite: "strict",
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             expires: expiresAt,
         });
-        */
 
         throw redirect(303, "/");
     },

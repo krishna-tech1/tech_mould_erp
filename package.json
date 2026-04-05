@@ -7,6 +7,8 @@
 		"dev": "vite",
 		"build": "vite build",
 		"preview": "vite preview",
+		"generate": "drizzle-kit generate",
+		"migrate": "drizzle-kit migrate",
 		"prepare": "svelte-kit sync",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
